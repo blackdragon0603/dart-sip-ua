@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:html';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:logger/logger.dart';
 import 'package:sip_ua/src/rtc_session/refer_subscriber.dart';
@@ -68,9 +69,14 @@ class SIPUAHelper extends EventManager {
     }
   }
 
-  Future<bool> call(String target, [bool voiceonly = false]) async {
+  Future<bool> call(String target,
+      [bool voiceonly = false, MediaStream mediaStream]) async {
     if (_ua != null && _ua.isConnected()) {
-      _ua.call(target, buildCallOptions(voiceonly));
+      final Map<String, Object> options = buildCallOptions(voiceonly);
+      if (mediaStream != null) {
+        options['mediaStream'] = mediaStream;
+      }
+      _ua.call(target, options);
       return true;
     } else {
       logger.error(
