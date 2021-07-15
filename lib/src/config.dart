@@ -13,19 +13,19 @@ import 'utils.dart' as Utils;
 // Default settings.
 class Settings {
   // SIP authentication.
-  String authorization_user;
-  String password;
-  String realm;
-  String ha1;
+  String? authorization_user;
+  String? password;
+  String? realm;
+  String? ha1;
 
   // SIP account.
-  String display_name;
+  String? display_name;
   dynamic uri;
   dynamic contact_uri;
   String user_agent = DartSIP_C.USER_AGENT;
 
   // SIP instance id (GRUU).
-  String instance_id = null;
+  String? instance_id = null;
 
   // Preloaded SIP Route header field.
   bool use_preloaded_route = false;
@@ -39,13 +39,13 @@ class Settings {
   bool register = true;
   int register_expires = 600;
   dynamic registrar_server;
-  Map<String, dynamic> register_extra_contact_uri_params;
+  Map<String, dynamic>? register_extra_contact_uri_params;
 
   // Dtmf mode
   DtmfMode dtmf_mode = DtmfMode.INFO;
 
   // Connection options.
-  List<WebSocketInterface> sockets = <WebSocketInterface>[];
+  List<WebSocketInterface>? sockets = <WebSocketInterface>[];
   int connection_recovery_max_interval = 30;
   int connection_recovery_min_interval = 2;
 
@@ -56,9 +56,9 @@ class Settings {
   String via_host = '${Utils.createRandomToken(12)}.invalid';
 
   // DartSIP ID
-  String jssip_id;
+  String? jssip_id;
 
-  String hostport_params;
+  String? hostport_params;
 }
 
 // Configuration checks.
@@ -66,7 +66,7 @@ class Checks {
   Map<String, Null Function(Settings src, Settings dst)> mandatory =
       <String, Null Function(Settings src, Settings dst)>{
     'sockets': (Settings src, Settings dst) {
-      List<WebSocketInterface> sockets = src.sockets;
+      List<WebSocketInterface>? sockets = src.sockets;
       /* Allow defining sockets parameter as:
        *  Socket: socket
        *  List of Socket: [socket1, socket2]
@@ -74,7 +74,7 @@ class Checks {
        *  List of Objects and Socket: [{socket: socket1}, socket2]
        */
       List<WebSocketInterface> copy = <WebSocketInterface>[];
-      if (sockets is List && sockets.length > 0) {
+      if (sockets != null && sockets.length > 0) {
         for (WebSocketInterface socket in sockets) {
           if (Socket.isSocket(socket)) {
             copy.add(socket);
@@ -107,7 +107,7 @@ class Checks {
   Map<String, Null Function(Settings src, Settings dst)> optional =
       <String, Null Function(Settings src, Settings dst)>{
     'authorization_user': (Settings src, Settings dst) {
-      String authorization_user = src.authorization_user;
+      String? authorization_user = src.authorization_user;
       if (authorization_user == null) return;
       if (Grammar.parse('"$authorization_user"', 'quoted_string') == -1) {
         return;
@@ -149,12 +149,12 @@ class Checks {
       }
     },
     'display_name': (Settings src, Settings dst) {
-      String display_name = src.display_name;
+      String? display_name = src.display_name;
       if (display_name == null) return;
       dst.display_name = display_name;
     },
     'instance_id': (Settings src, Settings dst) {
-      String instance_id = src.instance_id;
+      String? instance_id = src.instance_id;
       if (instance_id == null) return;
       if (instance_id.contains(RegExp(r'^uuid:', caseSensitive: false))) {
         instance_id = instance_id.substring(5);
@@ -186,17 +186,17 @@ class Checks {
       }
     },
     'password': (Settings src, Settings dst) {
-      String password = src.password;
+      String? password = src.password;
       if (password == null) return;
       dst.password = password.toString();
     },
     'realm': (Settings src, Settings dst) {
-      String realm = src.realm;
+      String? realm = src.realm;
       if (realm == null) return;
       dst.realm = realm.toString();
     },
     'ha1': (Settings src, Settings dst) {
-      String ha1 = src.ha1;
+      String? ha1 = src.ha1;
       if (ha1 == null) return;
       dst.ha1 = ha1.toString();
     },
@@ -228,7 +228,7 @@ class Checks {
       }
     },
     'register_extra_contact_uri_params': (Settings src, Settings dst) {
-      Map<String, dynamic> register_extra_contact_uri_params =
+      Map<String, dynamic>? register_extra_contact_uri_params =
           src.register_extra_contact_uri_params;
       if (register_extra_contact_uri_params == null) return;
       if (register_extra_contact_uri_params is Map<String, dynamic>) {

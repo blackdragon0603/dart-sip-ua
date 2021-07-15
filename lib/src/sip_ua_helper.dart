@@ -19,9 +19,9 @@ class SIPUAHelper extends EventManager {
     Log.loggingLevel = Level.debug;
   }
 
-  UA _ua;
-  Settings _settings;
-  UaSettings _uaSettings;
+  UA? _ua;
+  Settings? _settings;
+  UaSettings? _uaSettings;
   final Map<String, Call> _calls = <String, Call>{};
 
   RegistrationState _registerState =
@@ -30,24 +30,18 @@ class SIPUAHelper extends EventManager {
   set loggingLevel(Level loggingLevel) => Log.loggingLevel = loggingLevel;
 
   bool get registered {
-    if (_ua != null) {
-      return _ua.isRegistered();
-    }
-    return false;
+    return _ua?.isRegistered() ?? false;
   }
 
   bool get connected {
-    if (_ua != null) {
-      return _ua.isConnected();
-    }
-    return false;
+    return _ua?.isConnected() ?? false;
   }
 
   RegistrationState get registerState => _registerState;
 
   void stop() async {
     if (_ua != null) {
-      _ua.stop();
+      _ua?.stop();
     } else {
       Log.w('ERROR: stop called but not started, call start first.');
     }
@@ -56,22 +50,22 @@ class SIPUAHelper extends EventManager {
   void register() {
     assert(_ua != null,
         'register called but not started, you must call start first.');
-    _ua.register();
+    _ua?.register();
   }
 
   void unregister([bool all = true]) {
     if (_ua != null) {
       assert(registered, 'ERROR: you must call register first.');
-      _ua.unregister(all: all);
+      _ua?.unregister(all: all);
     } else {
       Log.e('ERROR: unregister called, you must call start first.');
     }
   }
 
   Future<bool> call(String target,
-      [bool voiceonly = false, MediaStream mediaStream = null]) async {
-    if (_ua != null && _ua.isConnected()) {
-      _ua.call(target, buildCallOptions(voiceonly));
+      [bool voiceonly = false, MediaStream? mediaStream]) async {
+    if (_ua != null && true == _ua?.isConnected()) {
+      _ua?.call(target, buildCallOptions(voiceonly));
       return true;
     } else {
       logger.error(
@@ -80,7 +74,7 @@ class SIPUAHelper extends EventManager {
     return false;
   }
 
-  Call findCall(String id) {
+  Call? findCall(String id) {
     return _calls[id];
   }
 
@@ -88,63 +82,65 @@ class SIPUAHelper extends EventManager {
     if (_ua != null) {
       logger.warn(
           'UA instance already exist!, stopping UA and creating a one...');
-      _ua.stop();
+      _ua?.stop();
     }
 
     _uaSettings = uaSettings;
 
-    _settings = Settings();
+    final Settings settings = Settings();
     WebSocketInterface socket = WebSocketInterface(
         uaSettings.webSocketUrl, uaSettings.webSocketSettings);
-    _settings.sockets = <WebSocketInterface>[socket];
-    _settings.uri = uaSettings.uri;
-    _settings.password = uaSettings.password;
-    _settings.ha1 = uaSettings.ha1;
-    _settings.display_name = uaSettings.displayName;
-    _settings.authorization_user = uaSettings.authorizationUser;
-    _settings.user_agent = uaSettings.userAgent ?? DartSIP_C.USER_AGENT;
-    _settings.register = uaSettings.register;
-    _settings.register_expires = uaSettings.register_expires;
-    _settings.register_extra_contact_uri_params =
+    settings.sockets = <WebSocketInterface>[socket];
+    settings.uri = uaSettings.uri;
+    settings.password = uaSettings.password;
+    settings.ha1 = uaSettings.ha1;
+    settings.display_name = uaSettings.displayName;
+    settings.authorization_user = uaSettings.authorizationUser;
+    settings.user_agent = uaSettings.userAgent ?? DartSIP_C.USER_AGENT;
+    settings.register = uaSettings.register;
+    settings.register_expires = uaSettings.register_expires;
+    settings.register_extra_contact_uri_params =
         uaSettings.registerParams.extraContactUriParams;
-    _settings.dtmf_mode = uaSettings.dtmfMode;
+    settings.dtmf_mode = uaSettings.dtmfMode;
+
+    _settings = settings;
 
     try {
-      _ua = UA(_settings);
-      _ua.on(EventSocketConnecting(), (EventSocketConnecting event) {
+      final UA ua = UA(_settings);
+      ua.on(EventSocketConnecting(), (EventSocketConnecting event) {
         logger.debug('connecting => ' + event.toString());
         _notifyTransportStateListeners(
             TransportState(TransportStateEnum.CONNECTING));
       });
 
-      _ua.on(EventSocketConnected(), (EventSocketConnected event) {
+      ua.on(EventSocketConnected(), (EventSocketConnected event) {
         logger.debug('connected => ' + event.toString());
         _notifyTransportStateListeners(
             TransportState(TransportStateEnum.CONNECTED));
       });
 
-      _ua.on(EventSocketDisconnected(), (EventSocketDisconnected event) {
+      ua.on(EventSocketDisconnected(), (EventSocketDisconnected event) {
         logger.debug('disconnected => ' + (event.cause.toString()));
         _notifyTransportStateListeners(TransportState(
             TransportStateEnum.DISCONNECTED,
             cause: event.cause));
       });
 
-      _ua.on(EventRegistered(), (EventRegistered event) {
+      ua.on(EventRegistered(), (EventRegistered event) {
         logger.debug('registered => ' + event.cause.toString());
         _registerState = RegistrationState(
             state: RegistrationStateEnum.REGISTERED, cause: event.cause);
         _notifyRegsistrationStateListeners(_registerState);
       });
 
-      _ua.on(EventUnregister(), (EventUnregister event) {
+      ua.on(EventUnregister(), (EventUnregister event) {
         logger.debug('unregistered => ' + event.cause.toString());
         _registerState = RegistrationState(
             state: RegistrationStateEnum.UNREGISTERED, cause: event.cause);
         _notifyRegsistrationStateListeners(_registerState);
       });
 
-      _ua.on(EventRegistrationFailed(), (EventRegistrationFailed event) {
+      ua.on(EventRegistrationFailed(), (EventRegistrationFailed event) {
         logger.debug('registrationFailed => ' + (event.cause.toString()));
         _registerState = RegistrationState(
             state: RegistrationStateEnum.REGISTRATION_FAILED,
@@ -152,7 +148,7 @@ class SIPUAHelper extends EventManager {
         _notifyRegsistrationStateListeners(_registerState);
       });
 
-      _ua.on(EventNewRTCSession(), (EventNewRTCSession event) {
+      ua.on(EventNewRTCSession(), (EventNewRTCSession event) {
         logger.debug('newRTCSession => ' + event.toString());
         RTCSession session = event.session;
         if (session.direction == 'incoming') {
@@ -166,17 +162,19 @@ class SIPUAHelper extends EventManager {
             event, CallState(CallStateEnum.CALL_INITIATION));
       });
 
-      _ua.on(EventNewMessage(), (EventNewMessage event) {
+      ua.on(EventNewMessage(), (EventNewMessage event) {
         logger.debug('newMessage => ' + event.toString());
         //Only notify incoming message to listener
-        if (event.message.direction == 'incoming') {
+        if (event.message?.direction == 'incoming') {
           SIPMessageRequest message =
               SIPMessageRequest(event.message, event.originator, event.request);
           _notifyNewMessageListeners(message);
         }
       });
 
-      _ua.start();
+      _ua = ua;
+
+      ua.start();
     } catch (event, s) {
       logger.error(event.toString(), null, s);
     }
@@ -267,11 +265,11 @@ class SIPUAHelper extends EventManager {
       }, buildCallOptions(true));
     });
 
-    Map<String, Object> _defaultOptions = <String, dynamic>{
+    Map<String, Object> _defaultOptions = <String, Object>{
       'eventHandlers': handlers,
       'pcConfig': <String, dynamic>{
         'sdpSemantics': 'unified-plan',
-        'iceServers': _uaSettings.iceServers
+        'iceServers': _uaSettings?.iceServers
       },
       'mediaConstraints': <String, dynamic>{
         'audio': true,
@@ -312,13 +310,13 @@ class SIPUAHelper extends EventManager {
     return _defaultOptions;
   }
 
-  Message sendMessage(String target, String body,
-      [Map<String, dynamic> options]) {
-    return _ua.sendMessage(target, body, options);
+  Message? sendMessage(String target, String body,
+      [Map<String, dynamic>? options]) {
+    return _ua?.sendMessage(target, body, options);
   }
 
   void terminateSessions(Map<String, dynamic> options) {
-    _ua.terminateSessions(options);
+    _ua?.terminateSessions(options);
   }
 
   final Set<SipUaHelperListener> _sipUaHelperListeners =
@@ -345,7 +343,7 @@ class SIPUAHelper extends EventManager {
   }
 
   void _notifyCallStateListeners(CallEvent event, CallState state) {
-    Call call = _calls[event.id];
+    Call? call = _calls[event.id];
     if (call == null) {
       logger.e('Call ${event.id} not found!');
       return;
@@ -394,7 +392,10 @@ class Call {
 
   void refer(String target) {
     assert(_session != null, 'ERROR(refer): rtc session is invalid!');
-    ReferSubscriber refer = _session.refer(target);
+    ReferSubscriber? refer = _session.refer(target);
+    if (refer == null) {
+      return;
+    }
     refer.on(EventReferTrying(), (EventReferTrying data) {});
     refer.on(EventReferProgress(), (EventReferProgress data) {});
     refer.on(EventReferAccepted(), (EventReferAccepted data) {
@@ -428,7 +429,7 @@ class Call {
     _session.unmute(audio, video);
   }
 
-  void sendDTMF(String tones, [Map<String, dynamic> options]) {
+  void sendDTMF(String tones, [Map<String, dynamic>? options]) {
     assert(_session != null, 'ERROR(sendDTMF): rtc session is invalid!');
     _session.sendDTMF(tones, options);
   }
@@ -436,41 +437,24 @@ class Call {
   String get remote_display_name {
     assert(_session != null,
         'ERROR(get remote_identity): rtc session is invalid!');
-    if (_session.remote_identity != null &&
-        _session.remote_identity.display_name != null) {
-      return _session.remote_identity.display_name;
-    }
-    return '';
+    return _session.remote_identity?.display_name ?? '';
   }
 
   String get remote_identity {
     assert(_session != null,
         'ERROR(get remote_identity): rtc session is invalid!');
-    if (_session.remote_identity != null &&
-        _session.remote_identity.uri != null &&
-        _session.remote_identity.uri.user != null) {
-      return _session.remote_identity.uri.user;
-    }
-    return '';
+    return _session.remote_identity?.uri.user ?? '';
   }
 
   String get local_identity {
     assert(
         _session != null, 'ERROR(get local_identity): rtc session is invalid!');
-    if (_session.local_identity != null &&
-        _session.local_identity.uri != null &&
-        _session.local_identity.uri.user != null) {
-      return _session.local_identity.uri.user;
-    }
-    return '';
+    return _session.local_identity?.uri.user ?? '';
   }
 
   String get direction {
     assert(_session != null, 'ERROR(get direction): rtc session is invalid!');
-    if (_session.direction != null) {
-      return _session.direction.toUpperCase();
-    }
-    return '';
+    return _session.direction?.toUpperCase() ?? '';
   }
 
   bool get remote_has_audio => _peerHasMediaLine('audio');
@@ -512,12 +496,12 @@ class CallState {
       this.cause,
       this.refer});
   CallStateEnum state;
-  ErrorCause cause;
-  String originator;
-  bool audio;
-  bool video;
-  MediaStream stream;
-  EventCallRefer refer;
+  ErrorCause? cause;
+  String? originator;
+  bool? audio;
+  bool? video;
+  MediaStream? stream;
+  EventCallRefer? refer;
 }
 
 enum RegistrationStateEnum {
@@ -528,9 +512,9 @@ enum RegistrationStateEnum {
 }
 
 class RegistrationState {
-  RegistrationState({this.state, this.cause});
+  RegistrationState({required this.state, this.cause});
   RegistrationStateEnum state;
-  ErrorCause cause;
+  ErrorCause? cause;
 }
 
 enum TransportStateEnum {
@@ -543,7 +527,7 @@ enum TransportStateEnum {
 class TransportState {
   TransportState(this.state, {this.cause});
   TransportStateEnum state;
-  ErrorCause cause;
+  ErrorCause? cause;
 }
 
 class SIPMessageRequest {
@@ -573,7 +557,7 @@ class WebSocketSettings {
   Map<String, dynamic> extraHeaders = <String, dynamic>{};
 
   /// `User Agent` field for dart http client.
-  String userAgent;
+  String? userAgent;
 
   /// Don‘t check the server certificate
   /// for self-signed certificate.
@@ -582,7 +566,7 @@ class WebSocketSettings {
   /// Custom transport scheme string to use.
   /// Otherwise the used protocol will be used (for example WS for ws://
   /// or WSS for wss://, based on the given web socket URL).
-  String transport_scheme;
+  String? transport_scheme;
 }
 
 enum DtmfMode {
@@ -591,26 +575,26 @@ enum DtmfMode {
 }
 
 class UaSettings {
-  String webSocketUrl;
+  String? webSocketUrl;
   WebSocketSettings webSocketSettings = WebSocketSettings();
 
   /// May not need to register if on a static IP, just Auth
   /// Default is true
-  bool register;
+  bool register = true;
 
   /// Default is 600 secs in config.dart
-  int register_expires;
+  int register_expires = 600;
 
   /// Mainly used for RFC8599 Push Notification Support
   RegisterParams registerParams = RegisterParams();
 
   /// `User Agent` field for sip message.
-  String userAgent;
-  String uri;
-  String authorizationUser;
-  String password;
-  String ha1;
-  String displayName;
+  String? userAgent;
+  String? uri;
+  String? authorizationUser;
+  String? password;
+  String? ha1;
+  String? displayName;
 
   /// DTMF mode, in band (rfc2833) or out of band (sip info)
   DtmfMode dtmfMode = DtmfMode.INFO;

@@ -13,15 +13,10 @@ import 'utils.dart';
  *
  */
 class URI {
-  URI(String scheme, String user, String host,
-      [int port,
-      Map<dynamic, dynamic> parameters,
-      Map<dynamic, dynamic> headers]) {
-    // Checks.
-    if (host == null) {
-      throw AssertionError('missing or invalid "host" parameter');
-    }
-
+  URI(String? scheme, String user, String host,
+      [int? port,
+      Map<dynamic, dynamic>? parameters,
+      Map<dynamic, dynamic>? headers]) {
     // Initialize parameters.
     this.user = user;
     _scheme = scheme ?? DartSIP_C.SIP;
@@ -51,12 +46,12 @@ class URI {
     }
   }
 
-  String user;
-  String _scheme;
+  String? user;
+  late String _scheme;
   Map<dynamic, dynamic> _parameters = <dynamic, dynamic>{};
   Map<dynamic, dynamic> _headers = <dynamic, dynamic>{};
-  String _host;
-  int _port;
+  late String _host;
+  int? _port;
   String get scheme => _scheme;
 
   set scheme(String value) {
@@ -69,9 +64,9 @@ class URI {
     _host = value.toLowerCase();
   }
 
-  int get port => _port;
+  int? get port => _port;
 
-  set port(int value) {
+  set port(int? value) {
     _port = value == 0
         ? value
         : (value != null)

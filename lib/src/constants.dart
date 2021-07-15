@@ -115,7 +115,7 @@ class SipMethodHelper {
     return method.toString().substring(period + 1);
   }
 
-  static SipMethod fromString(String name) {
+  static SipMethod? fromString(String? name) {
     if (name != null) {
       String cleanName = name.toUpperCase();
       for (SipMethod method in SipMethod.values) {

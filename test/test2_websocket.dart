@@ -10,17 +10,17 @@ void main() async {
 
 class TestWebsocket2 {
   bool connected = false;
-  WebSocket ws;
-  Completer<String> completer;
+  WebSocket? ws;
+  Completer<String>? completer;
   int ctr = 1;
 
   Completer<String> finished = Completer<String>();
 
   void send() {
     String message = 'A' * ctr;
-    ws.add(message);
+    ws?.add(message);
     completer = Completer<String>();
-    completer.future.then((dynamic t) {
+    completer?.future.then((dynamic t) {
       ctr += 7;
       if (ctr > 5000 || finished.isCompleted) {
         finished.complete();
@@ -33,10 +33,10 @@ class TestWebsocket2 {
   void connect(String url) async {
     ws = await WebSocket.connect(url);
     connected = true;
-    ws.listen((dynamic data) {
+    ws?.listen((dynamic data) {
       _onMessage(data as String);
     }, onDone: () {
-      print('Closed by server [${ws.closeCode}, ${ws.closeReason}]!');
+      print('Closed by server [${ws?.closeCode}, ${ws?.closeReason}]!');
       connected = false;
     });
     send();
@@ -47,6 +47,6 @@ class TestWebsocket2 {
     if (data.length != ctr) {
       finished.complete();
     }
-    completer.complete();
+    completer?.complete();
   }
 }

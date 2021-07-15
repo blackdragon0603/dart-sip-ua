@@ -78,7 +78,7 @@ bool checkTransaction(TransactionBag _transactions, IncomingRequest request) {
       if (tr != null) {
         switch (tr.state) {
           case TransactionState.PROCEEDING:
-            tr.transport.send(tr.last_response);
+            tr.transport?.send(tr.last_response);
             break;
 
           // RFC 6026 7.1 Invite retransmission.
@@ -139,7 +139,7 @@ bool checkTransaction(TransactionBag _transactions, IncomingRequest request) {
             break;
           case TransactionState.PROCEEDING:
           case TransactionState.COMPLETED:
-            tr.transport.send(tr.last_response);
+            tr.transport?.send(tr.last_response);
             break;
           default:
             break;

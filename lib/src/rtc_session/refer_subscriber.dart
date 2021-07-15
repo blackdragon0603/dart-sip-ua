@@ -13,10 +13,10 @@ import '../utils.dart' as Utils;
 class ReferSubscriber extends EventManager {
   ReferSubscriber(this._session);
 
-  int _id;
+  int? _id;
   final rtc.RTCSession _session;
 
-  int get id => _id;
+  int? get id => _id;
 
   void sendRefer(URI target, Map<String, dynamic> options) {
     logger.debug('sendRefer()');
@@ -28,13 +28,13 @@ class ReferSubscriber extends EventManager {
     addAllEventHandlers(eventHandlers);
 
     // Replaces URI header field.
-    String replaces;
+    String? replaces;
 
     if (options['replaces'] != null) {
-      replaces = options['replaces'].call_id;
-      replaces += ';to-tag=${options['replaces'].to_tag}';
-      replaces += ';from-tag=${options['replaces'].from_tag}';
-      replaces = Utils.encodeURIComponent(replaces);
+      String _replaces = options['replaces'].call_id ?? '';
+      _replaces += ';to-tag=${options['replaces'].to_tag}';
+      _replaces += ';from-tag=${options['replaces'].from_tag}';
+      replaces = Utils.encodeURIComponent(_replaces);
     }
 
     // Refer-To header field.
@@ -68,23 +68,24 @@ class ReferSubscriber extends EventManager {
       _requestFailed(null, DartSIP_C.causes.DIALOG_ERROR);
     });
 
-    OutgoingRequest request = _session.sendRequest(
+    OutgoingRequest? request = _session.sendRequest(
         SipMethod.REFER, <String, dynamic>{
       'extraHeaders': extraHeaders,
       'eventHandlers': handlers
     });
 
-    _id = request.cseq;
+    _id = request?.cseq;
   }
 
   void receiveNotify(IncomingRequest request) {
     logger.debug('receiveNotify()');
 
-    if (request.body == null) {
+    final String? request_body = request.body;
+    if (request_body == null) {
       return;
     }
 
-    String status_line = request.body.trim();
+    String status_line = request_body.trim();
     dynamic parsed = Grammar.parse(status_line, 'Status_Line');
 
     if (parsed == -1) {

@@ -27,19 +27,10 @@ import 'utils.dart' as utils;
  * -param {String} [body]
  */
 class OutgoingRequest {
-  OutgoingRequest(SipMethod method, URI ruri, UA ua,
-      [Map<String, dynamic> params, List<dynamic> extraHeaders, String body]) {
-    // Mandatory parameters check.
-    if (method == null || ruri == null || ua == null) {
-      throw Exceptions.TypeError('OutgoingRequest: ctor parameters invalid!');
-    }
-
+  OutgoingRequest(this.method, this.ruri, this.ua,
+      [Map<String, dynamic>? params, List<dynamic>? extraHeaders, this.body]) {
     params = params ?? <String, dynamic>{};
 
-    this.ua = ua;
-    this.method = method;
-    this.ruri = ruri;
-    this.body = body;
     this.extraHeaders = utils.cloneArray(extraHeaders);
 
     // Fill the Common SIP Request Headers.
@@ -48,7 +39,7 @@ class OutgoingRequest {
     if (params['route_set'] != null) {
       setHeader('route', params['route_set']);
     } else if (ua.configuration.use_preloaded_route) {
-      setHeader('route', '<${ua.transport.sip_uri};lr>');
+      setHeader('route', '<${ua.transport?.sip_uri};lr>');
     }
 
     // Via.
@@ -73,7 +64,7 @@ class OutgoingRequest {
     Map<String, dynamic> from_params = <String, dynamic>{
       'tag': params['from_tag'] ?? utils.newTag()
     };
-    String display_name;
+    String? display_name;
 
     if (params['from_display_name'] != null) {
       display_name = params['from_display_name'];
@@ -88,7 +79,7 @@ class OutgoingRequest {
 
     // Call-ID.
     String call_id = params['call_id'] ??
-        (ua.configuration.jssip_id + utils.createRandomToken(15));
+        (ua.configuration.jssip_id ?? '' + utils.createRandomToken(15));
 
     this.call_id = call_id;
     setHeader('call-id', call_id);
@@ -97,7 +88,7 @@ class OutgoingRequest {
     num cseq =
         params['cseq'] ?? utils.Math.floor(utils.Math.randomDouble() * 10000);
 
-    this.cseq = cseq;
+    this.cseq = cseq.toInt();
     setHeader('cseq', '$cseq ${SipMethodHelper.getName(method)}');
   }
 
@@ -105,13 +96,13 @@ class OutgoingRequest {
   Map<String, dynamic> headers = <String, dynamic>{};
   SipMethod method;
   URI ruri;
-  String body;
+  String? body;
   List<dynamic> extraHeaders = <dynamic>[];
-  NameAddrHeader to;
-  NameAddrHeader from;
-  String call_id;
-  int cseq;
-  Map<String, dynamic> sdp;
+  late NameAddrHeader to;
+  late NameAddrHeader from;
+  String? call_id;
+  late int cseq;
+  Map<String, dynamic>? sdp;
   dynamic transaction;
 
   /**
@@ -213,12 +204,11 @@ class OutgoingRequest {
    * Returns sdp.
    */
   Map<String, dynamic> parseSDP({bool force = false}) {
-    if (!force && sdp != null) {
-      return sdp;
-    } else {
-      sdp = sdp_transform.parse(body ?? '');
-      return sdp;
+    if (force) {
+      return sdp = sdp_transform.parse(body ?? '');
     }
+
+    return sdp ??= sdp_transform.parse(body ?? '');
   }
 
   @override
@@ -247,7 +237,7 @@ class OutgoingRequest {
         if (ua.configuration.session_timers) {
           supported.add('timer');
         }
-        if (ua.contact.pub_gruu != null || ua.contact.temp_gruu != null) {
+        if (ua.contact?.pub_gruu != null || ua.contact?.temp_gruu != null) {
           supported.add('gruu');
         }
         supported.add('ice');
@@ -265,7 +255,7 @@ class OutgoingRequest {
 
     supported.add('outbound');
 
-    String userAgent = ua.configuration.user_agent ?? DartSIP_C.USER_AGENT;
+    String userAgent = ua.configuration.user_agent;
 
     // Allow.
     msg += 'Allow: ${DartSIP_C.ALLOWED_METHODS}\r\n';
@@ -306,7 +296,7 @@ class OutgoingRequest {
 
 class InitialOutgoingInviteRequest extends OutgoingRequest {
   InitialOutgoingInviteRequest(URI ruri, UA ua,
-      [Map<String, dynamic> params, List<dynamic> extraHeaders, String body])
+      [Map<String, dynamic>? params, List<dynamic>? extraHeaders, String? body])
       : super(SipMethod.INVITE, ruri, ua, params, extraHeaders, body) {
     transaction = null;
   }
@@ -338,39 +328,26 @@ class InitialOutgoingInviteRequest extends OutgoingRequest {
 }
 
 class IncomingMessage {
-  IncomingMessage() {
-    data = '';
-    headers = null;
-    method = null;
-    via_branch = null;
-    call_id = null;
-    cseq = null;
-    from = null;
-    from_tag = null;
-    to = null;
-    to_tag = null;
-    body = '';
-    sdp = null;
-  }
+  IncomingMessage();
 
-  String data;
-  Map<String, dynamic> headers;
-  SipMethod method;
-  String via_branch;
-  String call_id;
-  int cseq;
-  NameAddrHeader from;
-  String from_tag;
-  NameAddrHeader to;
-  String to_tag;
-  String body;
-  Map<String, dynamic> sdp;
+  String data = '';
+  Map<String, dynamic>? headers;
+  SipMethod? method;
+  String? via_branch;
+  String? call_id;
+  int? cseq;
+  NameAddrHeader? from;
+  String? from_tag;
+  NameAddrHeader? to;
+  String? to_tag;
+  String body = '';
+  Map<String, dynamic>? sdp;
   dynamic status_code;
-  String reason_phrase;
-  int session_expires;
-  String session_expires_refresher;
-  ParsedData event;
-  ParsedData replaces;
+  String? reason_phrase;
+  int? session_expires;
+  String? session_expires_refresher;
+  ParsedData event = ParsedData();
+  ParsedData replaces = ParsedData();
   dynamic refer_to;
 
   /**
@@ -382,10 +359,12 @@ class IncomingMessage {
 
     name = utils.headerize(name);
 
-    if (headers[name] != null) {
-      headers[name].add(header);
+    headers ??= <String, dynamic>{};
+
+    if (headers![name] != null) {
+      headers![name].add(header);
     } else {
-      headers[name] = <dynamic>[header];
+      headers![name] = <dynamic>[header];
     }
   }
 
@@ -393,7 +372,7 @@ class IncomingMessage {
    * Get the value of the given header name at the given position.
    */
   dynamic getHeader(String name) {
-    dynamic header = headers[utils.headerize(name)];
+    dynamic header = headers?[utils.headerize(name)];
 
     if (header != null) {
       if (header[0] != null) {
@@ -408,7 +387,7 @@ class IncomingMessage {
    * Get the header/s of the given name.
    */
   List<dynamic> getHeaders(String name) {
-    List<dynamic> headers = this.headers[utils.headerize(name)];
+    List<dynamic>? headers = this.headers?[utils.headerize(name)];
     List<dynamic> result = <dynamic>[];
 
     if (headers == null) {
@@ -426,7 +405,7 @@ class IncomingMessage {
    * Verify the existence of the given header.
    */
   bool hasHeader(String name) {
-    return headers.containsKey(utils.headerize(name));
+    return true == headers?.containsKey(utils.headerize(name));
   }
 
   /**
@@ -439,15 +418,16 @@ class IncomingMessage {
   dynamic parseHeader(String name, {int idx = 0}) {
     name = utils.headerize(name);
 
-    if (headers[name] == null) {
+    dynamic _headers = headers?[name];
+    if (_headers == null) {
       logger.debug('header "$name" not present');
       return null;
-    } else if (idx >= headers[name].length) {
+    } else if (idx >= _headers.length) {
       logger.debug('not so many "$name" headers present');
       return null;
     }
 
-    dynamic header = headers[name][idx];
+    dynamic header = _headers[idx];
     dynamic value = header['raw'];
 
     if (header['parsed'] != null) {
@@ -457,7 +437,7 @@ class IncomingMessage {
     // Substitute '-' by '_' for grammar rule matching.
     dynamic parsed = Grammar.parse(value, name.replaceAll('-', '_'));
     if (parsed == -1) {
-      headers[name].splice(idx, 1); // delete from headers
+      _headers.splice(idx, 1); // delete from headers
       logger.debug('error parsing "$name" header field with value "$value"');
       return null;
     } else {
@@ -488,8 +468,8 @@ class IncomingMessage {
   */
   void setHeader(String name, dynamic value) {
     Map<String, dynamic> header = <String, dynamic>{'raw': value};
-
-    headers[utils.headerize(name)] = <dynamic>[header];
+    headers ??= <String, dynamic>{};
+    headers?[utils.headerize(name)] = <dynamic>[header];
   }
 
   /**
@@ -500,11 +480,13 @@ class IncomingMessage {
    * Returns sdp.
    */
   Map<String, dynamic> parseSDP({bool force = false}) {
-    if (!force && sdp != null) {
-      return sdp;
+    Map<String, dynamic>? _sdp = sdp;
+    if (!force && _sdp != null) {
+      return _sdp;
     } else {
-      sdp = sdp_transform.parse(body ?? '');
-      return sdp;
+      _sdp = sdp_transform.parse(body);
+      sdp = _sdp;
+      return _sdp;
     }
   }
 
@@ -515,17 +497,16 @@ class IncomingMessage {
 }
 
 class IncomingRequest extends IncomingMessage {
-  IncomingRequest(UA ua) : super() {
-    this.ua = ua;
+  IncomingRequest(this.ua) : super() {
     headers = <String, dynamic>{};
     ruri = null;
     transport = null;
     server_transaction = null;
   }
   UA ua;
-  URI ruri;
-  Transport transport;
-  TransactionBase server_transaction;
+  URI? ruri;
+  Transport? transport;
+  TransactionBase? server_transaction;
   /**
   * Stateful reply.
   * -param {Number} code status code
@@ -536,19 +517,16 @@ class IncomingRequest extends IncomingMessage {
   * -param {Function} [onFailure] onFailure callback
   */
   void reply(int code,
-      [String reason,
-      List<dynamic> extraHeaders,
-      String body,
-      Function onSuccess,
-      Function onFailure]) {
+      [String? reason,
+      List<dynamic>? extraHeaders,
+      String? body,
+      Function? onSuccess,
+      Function? onFailure]) {
     List<dynamic> supported = <dynamic>[];
     dynamic to = getHeader('To');
 
-    code = code ?? null;
-    reason = reason ?? null;
-
     // Validate code and reason values.
-    if (code == null || (code < 100 || code > 699)) {
+    if (code < 100 || code > 699) {
       throw Exceptions.TypeError('Invalid status_code: $code');
     } else if (reason != null && reason is! String) {
       throw Exceptions.TypeError('Invalid reason_phrase: $reason');
@@ -594,7 +572,7 @@ class IncomingRequest extends IncomingMessage {
         if (ua.configuration.session_timers) {
           supported.add('timer');
         }
-        if (ua.contact.pub_gruu != null || ua.contact.temp_gruu != null) {
+        if (ua.contact?.pub_gruu != null || ua.contact?.temp_gruu != null) {
           supported.add('gruu');
         }
         supported.add('ice');
@@ -640,7 +618,7 @@ class IncomingRequest extends IncomingMessage {
     IncomingMessage message = IncomingMessage();
     message.data = response;
 
-    server_transaction.receiveResponse(code, message, onSuccess, onFailure);
+    server_transaction?.receiveResponse(code, message, onSuccess, onFailure);
   }
 
   /**
@@ -648,11 +626,11 @@ class IncomingRequest extends IncomingMessage {
   * -param {Number} code status code
   * -param {String} reason reason phrase
   */
-  void reply_sl(int code, [String reason]) {
+  void reply_sl(int code, [String? reason]) {
     List<dynamic> vias = getHeaders('via');
 
     // Validate code and reason values.
-    if (code == null || (code < 100 || code > 699)) {
+    if (code < 100 || code > 699) {
       throw Exceptions.TypeError('Invalid status_code: $code');
     } else if (reason != null && reason is! String) {
       throw Exceptions.TypeError('Invalid reason_phrase: $reason');
@@ -680,7 +658,7 @@ class IncomingRequest extends IncomingMessage {
     response += 'CSeq: $cseq ${SipMethodHelper.getName(method)}\r\n';
     response += 'Content-Length: ${0}\r\n\r\n';
 
-    transport.send(response);
+    transport?.send(response);
   }
 }
 

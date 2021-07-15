@@ -8,7 +8,7 @@ import 'ua.dart';
 /**
  * Parse SIP Message
  */
-IncomingMessage parseMessage(String data, UA ua) {
+IncomingMessage? parseMessage(String data, UA ua) {
   IncomingMessage message;
   int bodyStart;
   int headerEnd = data.indexOf('\r\n');
@@ -185,7 +185,8 @@ dynamic parseHeader(
       } else {
         for (Map<String, dynamic> header in parsed) {
           message.addHeader('record-route', header['raw']);
-          message.headers['Record-Route']
+          message.headers ??= <String, dynamic>{};
+          message.headers?['Record-Route']
                   [message.getHeaders('record-route').length - 1]['parsed'] =
               header['parsed'];
         }
@@ -208,7 +209,8 @@ dynamic parseHeader(
       } else {
         for (Map<String, dynamic> header in parsed) {
           message.addHeader('contact', header['raw']);
-          message.headers['Contact'][message.getHeaders('contact').length - 1]
+          message.headers ??= <String, dynamic>{};
+          message.headers?['Contact'][message.getHeaders('contact').length - 1]
               ['parsed'] = header['parsed'];
         }
       }

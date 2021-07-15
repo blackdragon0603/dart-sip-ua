@@ -26,9 +26,9 @@ const List<bool Function()> responses = <bool Function()>[
 ];
 
 // local variables.
-IncomingMessage message;
-UA ua;
-Transport transport;
+IncomingMessage? message;
+UA? ua;
+Transport? transport;
 
 bool sanityCheck(IncomingMessage m, UA u, Transport t) {
   message = m;
@@ -80,7 +80,7 @@ bool sanityCheck(IncomingMessage m, UA u, Transport t) {
 
 // Sanity Check functions for requests.
 bool rfc3261_8_2_2_1() {
-  if (message.s('to').uri.scheme != 'sip') {
+  if (message?.s('to').uri.scheme != 'sip') {
     reply(416);
 
     return false;
@@ -90,8 +90,10 @@ bool rfc3261_8_2_2_1() {
 }
 
 bool rfc3261_16_3_4() {
-  if (message.to_tag == null) {
-    if (message.call_id.substring(0, 5) == ua.configuration.jssip_id) {
+  if (message != null && message?.to_tag == null) {
+    final call_id = message?.call_id;
+    if (call_id != null &&
+        call_id.substring(0, 5) == ua?.configuration.jssip_id) {
       reply(482);
 
       return false;
@@ -101,8 +103,8 @@ bool rfc3261_16_3_4() {
 }
 
 bool rfc3261_18_3_request() {
-  int len = Utils.str_utf8_length(message.body);
-  dynamic contentLength = message.getHeader('content-length');
+  int len = Utils.str_utf8_length(message?.body);
+  dynamic contentLength = message?.getHeader('content-length');
 
   if (contentLength != null && contentLength is String) {
     contentLength = int.tryParse(contentLength) ?? 0;
@@ -120,29 +122,29 @@ bool rfc3261_18_3_request() {
 }
 
 bool rfc3261_8_2_2_2() {
-  String fromTag = message.from_tag;
-  String call_id = message.call_id;
-  int cseq = message.cseq;
+  String? fromTag = message?.from_tag;
+  String? call_id = message?.call_id;
+  int? cseq = message?.cseq;
 
   // Accept any in-dialog request.
-  if (message.to_tag != null) {
+  if (message?.to_tag != null) {
     return true;
   }
 
   bool result = true;
   // INVITE request.
-  if (message.method == SipMethod.INVITE) {
+  if (message?.method == SipMethod.INVITE) {
     // If the branch matches the key of any IST then assume it is a retransmission
     // and ignore the INVITE.
     // TODO(cloudwebrtc): we should reply the last response.
-    if (ua.transactions
-            .getTransaction(InviteServerTransaction, message.via_branch) !=
+    if (ua?.transactions
+            .getTransaction(InviteServerTransaction, message?.via_branch) !=
         null) {
       result = false;
     }
     // Otherwise check whether it is a merged request.
     else {
-      ua.transactions.getAll(InviteServerTransaction).forEach((dynamic tr) {
+      ua?.transactions.getAll(InviteServerTransaction).forEach((dynamic tr) {
         if (tr.request.from_tag == fromTag &&
             tr.request.call_id == call_id &&
             tr.request.cseq == cseq) {
@@ -157,14 +159,14 @@ bool rfc3261_8_2_2_2() {
   // If the branch matches the key of any NIST then assume it is a retransmission
   // and ignore the request.
   // TODO(cloudwebrtc): we should reply the last response.
-  else if (ua.transactions
-          .getTransaction(NonInviteServerTransaction, message.via_branch) !=
+  else if (ua?.transactions
+          .getTransaction(NonInviteServerTransaction, message?.via_branch) !=
       null) {
     result = false;
   }
   // Otherwise check whether it is a merged request.
   else {
-    ua.transactions.getAll(NonInviteServerTransaction).forEach((dynamic tr) {
+    ua?.transactions.getAll(NonInviteServerTransaction).forEach((dynamic tr) {
       if (tr.request.from_tag == fromTag &&
           tr.request.call_id == call_id &&
           tr.request.cseq == cseq) {
@@ -180,7 +182,7 @@ bool rfc3261_8_2_2_2() {
 
 // Sanity Check functions for responses.
 bool rfc3261_8_1_3_3() {
-  if (message.getHeaders('via').length > 1) {
+  if (message != null && message!.getHeaders('via').length > 1) {
     logger.debug(
         'more than one Via header field present in the response, dropping the response');
 
@@ -190,9 +192,9 @@ bool rfc3261_8_1_3_3() {
 }
 
 bool rfc3261_18_3_response() {
-  int len = Utils.str_utf8_length(message.body);
+  int len = Utils.str_utf8_length(message?.body);
   // ignore: always_specify_types
-  var contentLength = message.getHeader('content-length');
+  var contentLength = message?.getHeader('content-length');
 
   if (contentLength != null && contentLength is String) {
     contentLength = int.tryParse(contentLength) ?? 0;
@@ -221,7 +223,7 @@ bool minimumHeaders() {
   ];
 
   for (String header in mandatoryHeaders) {
-    if (!message.hasHeader(header)) {
+    if (true != message?.hasHeader(header)) {
       logger.debug(
           'missing mandatory header field : $header, dropping the response');
 
@@ -234,7 +236,12 @@ bool minimumHeaders() {
 
 // Reply.
 void reply(int status_code) {
-  List<dynamic> vias = message.getHeaders('via');
+  final IncomingMessage? _message = message;
+  if (_message == null) {
+    return;
+  }
+
+  final List<dynamic> vias = _message.getHeaders('via');
 
   dynamic to;
   String response =
@@ -244,18 +251,18 @@ void reply(int status_code) {
     response += 'Via: $via\r\n';
   }
 
-  to = message.getHeader('To');
+  to = _message.getHeader('To');
 
-  if (message.to_tag == null) {
+  if (_message.to_tag == null) {
     to += ';tag=${Utils.newTag()}';
   }
 
   response += 'To: $to\r\n';
-  response += 'From: ${message.getHeader('From')}\r\n';
-  response += 'Call-ID: ${message.call_id}\r\n';
+  response += 'From: ${_message.getHeader('From')}\r\n';
+  response += 'Call-ID: ${_message.call_id}\r\n';
   response +=
-      'CSeq: ${message.cseq} ${SipMethodHelper.getName(message.method)}\r\n';
+      'CSeq: ${_message.cseq} ${SipMethodHelper.getName(_message.method)}\r\n';
   response += '\r\n';
 
-  transport.send(response);
+  transport?.send(response);
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:collection/collection.dart';
 
 import 'package:sip_ua/src/data.dart';
 
@@ -52,8 +53,8 @@ class DynamicSettings {
 class Contact {
   Contact(this.uri);
 
-  String pub_gruu;
-  String temp_gruu;
+  String? pub_gruu;
+  String? temp_gruu;
   bool anonymous = false;
   bool outbound = false;
   URI uri;
@@ -85,29 +86,8 @@ class Contact {
  * @throws {TypeError} If no configuration is given.
  */
 class UA extends EventManager {
-  UA(Settings configuration) {
+  UA(Settings? configuration) {
     logger.debug('new() [configuration:${configuration.toString()}]');
-
-    _cache = <String, dynamic>{'credentials': <dynamic>{}};
-
-    _configuration = Settings();
-    _dynConfiguration = DynamicSettings();
-    _dialogs = <String, Dialog>{};
-
-    // User actions outside any session/dialog (MESSAGE).
-    _applicants = <Message>{};
-
-    _sessions = <String, RTCSession>{};
-    _transport = null;
-    _contact = null;
-    _status = C.STATUS_INIT;
-    _error = null;
-    _transactions = TransactionBag();
-
-    // Custom UA empty object for high level use.
-    _data = <String, dynamic>{};
-
-    _closeTimer = null;
 
     // Check configuration argument.
     if (configuration == null) {
@@ -127,28 +107,30 @@ class UA extends EventManager {
     _registrator = Registrator(this);
   }
 
-  Map<String, dynamic> _cache;
-  Settings _configuration;
-  DynamicSettings _dynConfiguration;
-  Map<String, Dialog> _dialogs;
-  Set<Message> _applicants;
-  Map<String, RTCSession> _sessions = <String, RTCSession>{};
-  Transport _transport;
-  Contact _contact;
-  int _status;
-  int _error;
-  TransactionBag _transactions = TransactionBag();
-  Map<String, dynamic> _data;
-  Timer _closeTimer;
+  final Map<String, dynamic> _cache = <String, dynamic>{
+    'credentials': <dynamic>{}
+  };
+  final Settings _configuration = Settings();
+  DynamicSettings _dynConfiguration = DynamicSettings();
+  final Map<String, Dialog> _dialogs = <String, Dialog>{};
+  final Set<Message> _applicants = <Message>{};
+  final Map<String, RTCSession> _sessions = <String, RTCSession>{};
+  Transport? _transport;
+  Contact? _contact;
+  int _status = C.STATUS_INIT;
+  int? _error;
+  final TransactionBag _transactions = TransactionBag();
+  final Map<String, dynamic> _data = <String, dynamic>{};
+  Timer? _closeTimer;
   dynamic _registrator;
 
   int get status => _status;
 
-  Contact get contact => _contact;
+  Contact? get contact => _contact;
 
   Settings get configuration => _configuration;
 
-  Transport get transport => _transport;
+  Transport? get transport => _transport;
 
   TransactionBag get transactions => _transactions;
 
@@ -164,7 +146,7 @@ class UA extends EventManager {
     logger.debug('start()');
 
     if (_status == C.STATUS_INIT) {
-      _transport.connect();
+      _transport?.connect();
     } else if (_status == C.STATUS_USER_CLOSED) {
       logger.debug('restarting UA');
 
@@ -172,12 +154,12 @@ class UA extends EventManager {
       if (_closeTimer != null) {
         clearTimeout(_closeTimer);
         _closeTimer = null;
-        _transport.disconnect();
+        _transport?.disconnect();
       }
 
       // Reconnect.
       _status = C.STATUS_INIT;
-      _transport.connect();
+      _transport?.connect();
     } else if (_status == C.STATUS_READY) {
       logger.debug('UA is in READY status, not restarted');
     } else {
@@ -226,7 +208,7 @@ class UA extends EventManager {
    * Connection state.
    */
   bool isConnected() {
-    return _transport.isConnected();
+    return true == _transport?.isConnected();
   }
 
   /**
@@ -268,9 +250,9 @@ class UA extends EventManager {
    */
   void terminateSessions(Map<String, Object> options) {
     logger.debug('terminateSessions()');
-    _sessions.forEach((String key, _) {
-      if (!_sessions[key].isEnded()) {
-        _sessions[key].terminate(options);
+    _sessions.forEach((String key, RTCSession session) {
+      if (!session.isEnded()) {
+        session.terminate(options);
       }
     });
   }
@@ -283,7 +265,7 @@ class UA extends EventManager {
     logger.debug('stop()');
 
     // Remove dynamic settings.
-    _dynConfiguration = null;
+    _dynConfiguration = DynamicSettings();
 
     if (_status == C.STATUS_USER_CLOSED) {
       logger.debug('UA already closed');
@@ -298,11 +280,10 @@ class UA extends EventManager {
     int num_sessions = _sessions.length;
 
     // Run  _terminate_ on every Session.
-    _sessions.forEach((String key, _) {
+    _sessions.forEach((String key, RTCSession rtcSession) {
       if (_sessions.containsKey(key)) {
         logger.debug('closing session $key');
         try {
-          RTCSession rtcSession = _sessions[key];
           if (!rtcSession.isEnded()) {
             rtcSession.terminate();
           }
@@ -323,12 +304,12 @@ class UA extends EventManager {
 
     int num_transactions = _transactions.countTransactions();
     if (num_transactions == 0 && num_sessions == 0) {
-      _transport.disconnect();
+      _transport?.disconnect();
     } else {
       _closeTimer = setTimeout(() {
         logger.info('Closing connection');
         _closeTimer = null;
-        _transport.disconnect();
+        _transport?.disconnect();
       }, 2000);
     }
   }
@@ -338,14 +319,14 @@ class UA extends EventManager {
    * -param {String} target
    * -returns {DartSIP.URI|null}
    */
-  URI normalizeTarget(String target) {
+  URI? normalizeTarget(String target) {
     return Utils.normalizeTarget(target, _configuration.hostport_params);
   }
 
   /**
    * Allow retrieving configuration and autogenerated fields in runtime.
    */
-  String get(String parameter) {
+  String? get(String parameter) {
     switch (parameter) {
       case 'realm':
         return _configuration.realm;
@@ -454,7 +435,11 @@ class UA extends EventManager {
   /**
    * RTCSession
    */
-  void newRTCSession({RTCSession session, String originator, dynamic request}) {
+  void newRTCSession({
+    required RTCSession session,
+    required String originator,
+    dynamic request,
+  }) {
     _sessions[session.id] = session;
     emit(EventNewRTCSession(
         session: session, originator: originator, request: request));
@@ -481,7 +466,7 @@ class UA extends EventManager {
   /**
    * Unregistered
    */
-  void unregistered({dynamic response, String cause}) {
+  void unregistered({dynamic response, String? cause}) {
     emit(EventUnregister(
         cause: ErrorCause(
             cause: cause ?? 'unregistered',
@@ -492,7 +477,7 @@ class UA extends EventManager {
   /**
    * Registration Failed
    */
-  void registrationFailed({dynamic response, String cause}) {
+  void registrationFailed({dynamic response, required String cause}) {
     emit(EventRegistrationFailed(
         cause: ErrorCause(
             cause: Utils.sipErrorCause(response.status_code),
@@ -508,11 +493,13 @@ class UA extends EventManager {
    * Request reception
    */
   void receiveRequest(IncomingRequest request) {
-    DartSIP_C.SipMethod method = request.method;
+    DartSIP_C.SipMethod? method = request.method;
 
+    final request_ruri = request.ruri;
     // Check that request URI points to us.
-    if (request.ruri.user != _configuration.uri.user &&
-        request.ruri.user != _contact.uri.user) {
+    if (request_ruri == null ||
+        (request_ruri.user != _configuration.uri.user &&
+            request_ruri.user != _contact?.uri.user)) {
       logger.debug('Request-URI does not point to us');
       if (request.method != SipMethod.ACK) {
         request.reply_sl(404);
@@ -522,7 +509,7 @@ class UA extends EventManager {
     }
 
     // Check request URI scheme.
-    if (request.ruri.scheme == DartSIP_C.SIPS) {
+    if (request_ruri.scheme == DartSIP_C.SIPS) {
       request.reply_sl(416);
 
       return;
@@ -568,8 +555,8 @@ class UA extends EventManager {
       }
     }
 
-    Dialog dialog;
-    RTCSession session;
+    Dialog? dialog;
+    RTCSession? session;
 
     // Initial Request.
     if (request.to_tag == null) {
@@ -584,7 +571,7 @@ class UA extends EventManager {
               if (dialog != null) {
                 session = dialog.owner;
                 if (!session.isEnded()) {
-                  session.receiveRequest(request);
+                  session.receiveRequest.call(request);
                 } else {
                   request.reply(603);
                 }
@@ -665,11 +652,11 @@ class UA extends EventManager {
   /**
    * Get the session to which the request belongs to, if any.
    */
-  RTCSession _findSession(String call_id, String from_tag, String to_tag) {
+  RTCSession? _findSession(String call_id, String? from_tag, String? to_tag) {
     String sessionIDa = call_id + (from_tag ?? '');
-    RTCSession sessionA = _sessions[sessionIDa];
+    RTCSession? sessionA = _sessions[sessionIDa];
     String sessionIDb = call_id + (to_tag ?? '');
-    RTCSession sessionB = _sessions[sessionIDb];
+    RTCSession? sessionB = _sessions[sessionIDb];
 
     if (sessionA != null) {
       return sessionA;
@@ -683,9 +670,9 @@ class UA extends EventManager {
   /**
    * Get the dialog to which the request belongs to, if any.
    */
-  Dialog _findDialog(String call_id, String from_tag, String to_tag) {
+  Dialog? _findDialog(String call_id, String from_tag, String to_tag) {
     String id = call_id + from_tag + to_tag;
-    Dialog dialog = _dialogs[id];
+    Dialog? dialog = _dialogs[id];
 
     if (dialog != null) {
       return dialog;
@@ -739,10 +726,10 @@ class UA extends EventManager {
       });
 
       // Transport event callbacks.
-      _transport.onconnecting = onTransportConnecting;
-      _transport.onconnect = onTransportConnect;
-      _transport.ondisconnect = onTransportDisconnect;
-      _transport.ondata = onTransportData;
+      _transport?.onconnecting = onTransportConnecting;
+      _transport?.onconnect = onTransportConnect;
+      _transport?.ondisconnect = onTransportDisconnect;
+      _transport?.ondata = onTransportData;
     } catch (e) {
       logger.error('Failed to _loadConfig: ${e.toString()}');
       throw Exceptions.ConfigurationError('sockets', _configuration.sockets);
@@ -750,8 +737,9 @@ class UA extends EventManager {
 
     String transport = 'ws';
 
-    if (_configuration.sockets.isNotEmpty) {
-      transport = _configuration.sockets.first.via_transport.toLowerCase();
+    final WebSocketInterface? socket = _configuration.sockets?.firstOrNull;
+    if (socket != null) {
+      transport = socket.via_transport.toLowerCase();
     }
 
     // Remove sockets instance from configuration object.
@@ -813,7 +801,7 @@ class UA extends EventManager {
 
     emit(EventSocketConnected(socket: transport.socket));
 
-    if (_dynConfiguration.register) {
+    if (_dynConfiguration.register == true) {
       _registrator.register();
     }
   }
@@ -838,7 +826,7 @@ class UA extends EventManager {
 
 // Transport data event.
   void onTransportData(Transport transport, String messageData) {
-    IncomingMessage message = Parser.parseMessage(messageData, this);
+    IncomingMessage? message = Parser.parseMessage(messageData, this);
 
     if (message == null) {
       return;

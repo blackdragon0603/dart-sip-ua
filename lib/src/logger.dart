@@ -11,63 +11,54 @@ class Log extends Logger {
   Log._internal(String currentWorkingDirectory)
       : super(printer: MyLogPrinter(currentWorkingDirectory));
 
-  factory Log.d(String message, [dynamic error, StackTrace stackTrace]) {
-    autoInit();
-    _self.d(message, error, stackTrace);
-    return _self;
+  factory Log.d(String message, [dynamic error, StackTrace? stackTrace]) {
+    return autoInit()..d(message, error, stackTrace);
   }
 
-  factory Log.i(String message, [dynamic error, StackTrace stackTrace]) {
-    autoInit();
-    _self.i(message, error, stackTrace);
-    return _self;
+  factory Log.i(String message, [dynamic error, StackTrace? stackTrace]) {
+    return autoInit()..i(message, error, stackTrace);
   }
 
-  factory Log.w(String message, [dynamic error, StackTrace stackTrace]) {
-    autoInit();
-    _self.w(message, error, stackTrace);
-    return _self;
+  factory Log.w(String message, [dynamic error, StackTrace? stackTrace]) {
+    return autoInit()..w(message, error, stackTrace);
   }
 
-  factory Log.e(String message, [dynamic error, StackTrace stackTrace]) {
-    autoInit();
-    _self.e(message, error, stackTrace);
-    return _self;
+  factory Log.e(String message, [dynamic error, StackTrace? stackTrace]) {
+    return autoInit()..e(message, error, stackTrace);
   }
 
-  static Log _self;
-  static String _localPath;
+  static Log? _self;
+  static String? _localPath;
   static Level _loggingLevel = Level.debug;
   static set loggingLevel(Level loggingLevel) => _loggingLevel = loggingLevel;
 
-  void debug(String message, [dynamic error, StackTrace stackTrace]) {
+  void debug(String message, [dynamic error, StackTrace? stackTrace]) {
     autoInit();
     Log.d(message, error, stackTrace);
   }
 
-  void info(String message, [dynamic error, StackTrace stackTrace]) {
+  void info(String message, [dynamic error, StackTrace? stackTrace]) {
     autoInit();
     Log.i(message, error, stackTrace);
   }
 
-  void warn(String message, [dynamic error, StackTrace stackTrace]) {
+  void warn(String message, [dynamic error, StackTrace? stackTrace]) {
     autoInit();
     Log.w(message, error, stackTrace);
   }
 
-  void error(String message, [dynamic error, StackTrace stackTrace]) {
+  void error(String message, [dynamic error, StackTrace? stackTrace]) {
     autoInit();
     Log.e(message, error, stackTrace);
   }
 
-  static void autoInit() {
-    if (_self == null) {
-      init('.');
-    }
+  static Log autoInit() {
+    return _self ?? init('.');
   }
 
-  static void init(String currentWorkingDirectory) {
-    _self = Log._internal(currentWorkingDirectory);
+  static Log init(String currentWorkingDirectory) {
+    final Log log = Log._internal(currentWorkingDirectory);
+    _self = log;
 
     StackTraceNJ frames = StackTraceNJ();
 
@@ -76,6 +67,8 @@ class Log extends Logger {
           .substring(frame.sourceFile.path.lastIndexOf('/'));
       break;
     }
+
+    return log;
   }
 }
 
@@ -139,7 +132,7 @@ class MyLogPrinter extends LogPrinter {
 
   AnsiColor _getLevelColor(Level level) {
     if (colors) {
-      return levelColors[level];
+      return levelColors[level] ?? AnsiColor.none();
     } else {
       return AnsiColor.none();
     }
@@ -166,8 +159,8 @@ class AnsiColor {
   /// Reset all colors and options for current SGRs to terminal defaults.
   static const String ansiDefault = '${ansiEsc}0m';
 
-  final int fg;
-  final int bg;
+  final int? fg;
+  final int? bg;
   final bool color;
 
   @override

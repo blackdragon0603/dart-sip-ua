@@ -17,29 +17,25 @@ import 'ua.dart';
 // Default event handlers.
 
 class RequestSender {
-  RequestSender(UA ua, OutgoingRequest request, EventManager eventHandlers) {
-    _ua = ua;
-    _eventHandlers = eventHandlers;
-    _method = request.method;
-    _request = request;
+  RequestSender(this._ua, this._request, this._eventHandlers) {
     _auth = null;
     _challenged = false;
     _staled = false;
 
     // If ua is in closing process or even closed just allow sending Bye and ACK.
-    if (ua.status == UAC.C.STATUS_USER_CLOSED &&
+    if (_ua.status == UAC.C.STATUS_USER_CLOSED &&
         (_method != SipMethod.BYE || _method != SipMethod.ACK)) {
       _eventHandlers.emit(EventOnTransportError());
     }
   }
-  UA _ua;
-  EventManager _eventHandlers;
-  SipMethod _method;
+  final UA _ua;
+  final EventManager _eventHandlers;
   OutgoingRequest _request;
-  DigestAuthentication _auth;
-  bool _challenged;
-  bool _staled;
-  TransactionBase clientTransaction;
+  SipMethod get _method => _request.method;
+  DigestAuthentication? _auth;
+  bool _challenged = false;
+  bool _staled = false;
+  TransactionBase? clientTransaction;
 
   /**
   * Create the client transaction and send the message.
@@ -73,7 +69,7 @@ class RequestSender {
             NonInviteClientTransaction(_ua, _ua.transport, _request, handlers);
     }
 
-    clientTransaction.send();
+    clientTransaction?.send();
   }
 
   /**
@@ -118,29 +114,28 @@ class RequestSender {
         }));
 
         // Verify that the challenge is really valid.
-        if (!_auth.authenticate(
-            _request.method,
-            Challenge.fromMap(<String, dynamic>{
-              'algorithm': challenge.algorithm,
-              'realm': challenge.realm,
-              'nonce': challenge.nonce,
-              'opaque': challenge.opaque,
-              'stale': challenge.stale,
-              'qop': challenge.qop,
-            }),
-            _request.ruri)) {
+        if (true !=
+            _auth?.authenticate(
+                _request.method,
+                Challenge.fromMap(<String, dynamic>{
+                  'algorithm': challenge.algorithm,
+                  'realm': challenge.realm,
+                  'nonce': challenge.nonce,
+                  'opaque': challenge.opaque,
+                  'stale': challenge.stale,
+                  'qop': challenge.qop,
+                }),
+                _request.ruri)) {
           _eventHandlers.emit(EventOnReceiveResponse(response: response));
           return;
         }
         _challenged = true;
 
         // Update ha1 and realm in the UA.
-        _ua.set('realm', _auth.get('realm'));
-        _ua.set('ha1', _auth.get('ha1'));
+        _ua.set('realm', _auth?.get('realm'));
+        _ua.set('ha1', _auth?.get('ha1'));
 
-        if (challenge.stale != null) {
-          _staled = true;
-        }
+        _staled = challenge.stale != null;
 
         _request = _request.clone();
         _request.cseq += 1;

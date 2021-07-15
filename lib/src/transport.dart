@@ -37,23 +37,8 @@ class C {
  * @socket DartSIP::Socket instance
  */
 class Transport {
-  Transport(dynamic sockets,
-      [Map<String, int> recovery_options = C.recovery_options]) {
+  Transport(dynamic sockets, [this._recovery_options = C.recovery_options]) {
     logger.debug('new()');
-
-    status = C.STATUS_DISCONNECTED;
-
-    // Current socket.
-    socket = null;
-
-    // Socket collection.
-    _socketsMap = <Map<String, dynamic>>[];
-
-    _recovery_options = recovery_options;
-    _recover_attempts = 0;
-    _recovery_timer = null;
-
-    _close_requested = false;
 
     if (sockets == null) {
       throw Exceptions.TypeError('Invalid argument. null \'sockets\' argument');
@@ -85,28 +70,28 @@ class Transport {
     _getSocket();
   }
 
-  int status;
-  WebSocketInterface socket;
-  List<Map<String, dynamic>> _socketsMap;
-  Map<String, int> _recovery_options;
-  int _recover_attempts;
-  Timer _recovery_timer;
-  bool _close_requested;
+  int status = C.STATUS_DISCONNECTED;
+  WebSocketInterface? socket;
+  final List<Map<String, dynamic>> _socketsMap = <Map<String, dynamic>>[];
+  final Map<String, int> _recovery_options;
+  int _recover_attempts = 0;
+  Timer? _recovery_timer;
+  bool _close_requested = false;
 
-  void Function(WebSocketInterface socket, int attempts) onconnecting;
-  void Function(WebSocketInterface socket, ErrorCause cause) ondisconnect;
-  void Function(Transport transport) onconnect;
-  void Function(Transport transport, String messageData) ondata;
+  void Function(WebSocketInterface socket, int attempts)? onconnecting;
+  void Function(WebSocketInterface socket, ErrorCause cause)? ondisconnect;
+  void Function(Transport transport)? onconnect;
+  void Function(Transport transport, String messageData)? ondata;
 
   /**
    * Instance Methods
    */
 
-  String get via_transport => socket.via_transport;
+  String? get via_transport => socket?.via_transport;
 
-  String get url => socket.url;
+  String? get url => socket?.url;
 
-  String get sip_uri => socket.sip_uri;
+  String? get sip_uri => socket?.sip_uri;
 
   void connect() {
     logger.debug('connect()');
@@ -123,14 +108,14 @@ class Transport {
 
     _close_requested = false;
     status = C.STATUS_CONNECTING;
-    onconnecting(socket, _recover_attempts);
+    onconnecting?.call(socket, _recover_attempts);
 
     if (!_close_requested) {
       // Bind socket event callbacks.
-      socket.onconnect = _onConnect;
-      socket.ondisconnect = _onDisconnect;
-      socket.ondata = _onData;
-      socket.connect();
+      socket?.onconnect = _onConnect;
+      socket?.ondisconnect = _onDisconnect;
+      socket?.ondata = _onData;
+      socket?.connect();
     }
     return;
   }
@@ -149,14 +134,14 @@ class Transport {
     }
 
     // Unbind socket event callbacks.
-    socket.onconnect = () => () {};
-    socket.ondisconnect =
+    socket?.onconnect = () => () {};
+    socket?.ondisconnect =
         (WebSocketInterface socket, bool error, int closeCode, String reason) =>
             () {};
-    socket.ondata = (dynamic data) => () {};
+    socket?.ondata = (dynamic data) => () {};
 
-    socket.disconnect();
-    ondisconnect(
+    socket?.disconnect();
+    ondisconnect?.call(
         socket,
         ErrorCause(
             cause: 'disconnect',
@@ -167,7 +152,7 @@ class Transport {
   bool send(dynamic data) {
     logger.debug('send()');
 
-    if (!isConnected()) {
+    if (socket == null || !isConnected()) {
       logger.error(
           'unable to send message, transport is not connected. Current state is $status',
           null,
@@ -177,7 +162,7 @@ class Transport {
 
     String message = data.toString();
     //logger.debug('sending message:\n\n$message\n');
-    return socket.send(message);
+    return socket!.send(message);
   }
 
   bool isConnected() {
@@ -198,10 +183,12 @@ class Transport {
     num k =
         Math.floor((Math.randomDouble() * Math.pow(2, _recover_attempts)) + 1);
 
-    if (k < _recovery_options['min_interval']) {
-      k = _recovery_options['min_interval'];
-    } else if (k > _recovery_options['max_interval']) {
-      k = _recovery_options['max_interval'];
+    final int? min_interval = _recovery_options['min_interval'];
+    final int? max_interval = _recovery_options['max_interval'];
+    if (min_interval != null && k < min_interval) {
+      k = min_interval;
+    } else if (max_interval != null && k > max_interval) {
+      k = max_interval;
     }
 
     logger.debug(
@@ -263,13 +250,13 @@ class Transport {
       clearTimeout(_recovery_timer);
       _recovery_timer = null;
     }
-    onconnect(this);
+    onconnect?.call(this);
   }
 
   void _onDisconnect(
       WebSocketInterface socket, bool error, int closeCode, String reason) {
     status = C.STATUS_DISCONNECTED;
-    ondisconnect(
+    ondisconnect?.call(
         socket,
         ErrorCause(
             cause: 'error', status_code: closeCode, reason_phrase: reason));
@@ -314,6 +301,6 @@ class Transport {
       logger.debug('received text message:\n\n$data\n');
     }
 
-    ondata(this, data);
+    ondata?.call(this, data);
   }
 }

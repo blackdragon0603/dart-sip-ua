@@ -3,26 +3,17 @@ import 'uri.dart';
 import 'utils.dart';
 
 class NameAddrHeader {
-  NameAddrHeader(URI uri, String display_name,
-      [Map<dynamic, dynamic> parameters]) {
-    // Checks.
-    if (uri == null || uri is! URI) {
-      throw AssertionError('missing or invalid "uri" = $uri parameter');
-    }
-
+  NameAddrHeader(this._uri, this._display_name,
+      [Map<dynamic, dynamic>? parameters]) {
     // Initialize parameters.
-    _uri = uri;
-    _parameters = <dynamic, dynamic>{};
-    _display_name = display_name;
-
     if (parameters != null) {
       parameters.forEach((dynamic key, dynamic param) {
         setParam(key, param);
       });
     }
   }
-  URI _uri;
-  Map<dynamic, dynamic> _parameters;
+  final URI _uri;
+  Map<dynamic, dynamic> _parameters = <dynamic, dynamic>{};
   String _display_name;
   /**
    * Parse the given string and returns a NameAddrHeader instance or null if

@@ -13,10 +13,8 @@ import 'uri.dart';
 import 'utils.dart' as Utils;
 
 class Message extends EventManager {
-  Message(UA ua) {
-    _ua = ua;
+  Message(this._ua) {
     _request = null;
-    _closed = false;
 
     _direction = null;
     _local_identity = null;
@@ -29,32 +27,28 @@ class Message extends EventManager {
     _data = <String, dynamic>{};
   }
 
-  UA _ua;
+  final UA _ua;
   dynamic _request;
-  bool _closed;
-  String _direction;
-  NameAddrHeader _local_identity;
-  NameAddrHeader _remote_identity;
-  bool _is_replied;
-  Map<String, dynamic> _data;
-  String get direction => _direction;
+  bool _closed = false;
+  String? _direction;
+  NameAddrHeader? _local_identity;
+  NameAddrHeader? _remote_identity;
+  bool _is_replied = false;
+  Map<String, dynamic> _data = <String, dynamic>{};
+  String? get direction => _direction;
 
-  NameAddrHeader get local_identity => _local_identity;
+  NameAddrHeader? get local_identity => _local_identity;
 
-  NameAddrHeader get remote_identity => _remote_identity;
+  NameAddrHeader? get remote_identity => _remote_identity;
 
   Map<String, dynamic> get data => _data;
 
-  void send(String target, String body, [Map<String, dynamic> options]) {
+  void send(String target, String body, [Map<String, dynamic>? options]) {
     String originalTarget = target;
     options = options ?? <String, dynamic>{};
 
-    if (target == null || body == null) {
-      throw Exceptions.TypeError('Not enough arguments');
-    }
-
     // Check target validity.
-    URI normalized = _ua.normalizeTarget(target);
+    URI? normalized = _ua.normalizeTarget(target);
     if (normalized == null) {
       throw Exceptions.TypeError('Invalid target: $originalTarget');
     }

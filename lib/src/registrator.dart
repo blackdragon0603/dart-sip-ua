@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:collection/collection.dart';
 
 import 'constants.dart';
 import 'constants.dart' as DartSIP_C;
@@ -24,20 +25,13 @@ class UnHandledResponse {
 }
 
 class Registrator {
-  Registrator(UA ua, [Transport transport]) {
-    int reg_id = 1; // Force reg_id to 1.
+  Registrator(this._ua, [Transport? transport]) {
+    int? reg_id = 1; // Force reg_id to 1.
 
-    _ua = ua;
     _transport = transport;
 
-    _registrar = ua.configuration.registrar_server;
-    _expires = ua.configuration.register_expires;
-
     // Call-ID and CSeq values RFC3261 10.2.
-    _call_id = utils.createRandomToken(22);
     _cseq = 0;
-
-    _to_uri = ua.configuration.uri;
 
     _registrationTimer = null;
 
@@ -48,10 +42,11 @@ class Registrator {
     _registered = false;
 
     // Contact header.
-    _contact = _ua.contact.toString();
+    String contact = _ua.contact.toString();
 
     // Sip.ice media feature tag (RFC 5768).
-    _contact += ';+sip.ice';
+    contact += ';+sip.ice';
+    _contact = contact;
 
     // Custom headers for REGISTER and un-REGISTER.
     _extraHeaders = <String>[];
@@ -61,32 +56,36 @@ class Registrator {
 
     // Custom Contact URI params for REGISTER and un-REGISTER.
     setExtraContactUriParams(
-        ua.configuration.register_extra_contact_uri_params);
+        _ua.configuration.register_extra_contact_uri_params);
 
     if (reg_id != null) {
-      _contact += ';reg-id=$reg_id';
-      _contact +=
-          ';+sip.instance="<urn:uuid:${_ua.configuration.instance_id}>"';
+      contact += ';reg-id=$reg_id';
+      contact += ';+sip.instance="<urn:uuid:${_ua.configuration.instance_id}>"';
+      _contact = contact;
     }
   }
 
-  UA _ua;
-  Transport _transport;
-  URI _registrar;
-  int _expires;
-  String _call_id;
-  int _cseq;
-  URI _to_uri;
-  Timer _registrationTimer;
-  bool _registering;
-  bool _registered;
-  String _contact;
-  List<String> _extraHeaders;
-  String _extraContactParams;
+  final UA _ua;
+  Transport? _transport;
+  URI get _registrar => _ua.configuration.registrar_server;
+  int get _expires => _ua.configuration.register_expires;
+  set _expires(int value) {
+    _ua.configuration.register_expires = value;
+  }
+
+  final String _call_id = utils.createRandomToken(22);
+  int _cseq = 0;
+  URI get _to_uri => _ua.configuration.uri;
+  Timer? _registrationTimer;
+  bool _registering = false;
+  bool _registered = false;
+  String? _contact;
+  List<String> _extraHeaders = <String>[];
+  String _extraContactParams = '';
 
   bool get registered => _registered;
 
-  Transport get transport => _transport;
+  Transport? get transport => _transport;
 
   void setExtraHeaders(List<String> extraHeaders) {
     if (extraHeaders is! List) {
@@ -131,7 +130,7 @@ class Registrator {
       return;
     }
 
-    List<String> extraHeaders = List<String>.from(_extraHeaders ?? <String>[]);
+    List<String> extraHeaders = List<String>.from(_extraHeaders);
 
     extraHeaders
         .add('Contact: $_contact;expires=$_expires$_extraContactParams');
@@ -167,7 +166,7 @@ class Registrator {
     handlers.on(EventOnReceiveResponse(), (EventOnReceiveResponse event) {
       {
         // Discard responses to older REGISTER/un-REGISTER requests.
-        if (event.response.cseq != _cseq) {
+        if (event.response?.cseq != _cseq) {
           return;
         }
 
@@ -177,26 +176,26 @@ class Registrator {
           _registrationTimer = null;
         }
 
-        String status_code = event.response.status_code.toString();
+        String? status_code = event.response?.status_code.toString();
 
         if (utils.test1XX(status_code)) {
           // Ignore provisional responses.
         } else if (utils.test2XX(status_code)) {
           _registering = false;
 
-          if (!event.response.hasHeader('Contact')) {
+          if (true != event.response?.hasHeader('Contact')) {
             logger.debug(
                 'no Contact header in response to REGISTER, response ignored');
             return;
           }
 
           List<dynamic> contacts = <dynamic>[];
-          event.response.headers['Contact'].forEach((dynamic item) {
+          event.response?.headers?['Contact'].forEach((dynamic item) {
             contacts.add(item['parsed']);
           });
           // Get the Contact pointing to us and update the expires value accordingly.
-          dynamic contact = contacts.firstWhere(
-              (dynamic element) => element.uri.user == _ua.contact.uri.user);
+          dynamic contact = contacts.firstWhereOrNull(
+              (dynamic element) => element.uri.user == _ua.contact?.uri.user);
 
           if (contact == null) {
             logger.debug('no Contact header pointing to us, response ignored');
@@ -205,8 +204,8 @@ class Registrator {
 
           dynamic expires = contact.getParam('expires');
 
-          if (expires == null && event.response.hasHeader('expires')) {
-            expires = event.response.getHeader('expires');
+          if (expires == null && true == event.response?.hasHeader('expires')) {
+            expires = event.response?.getHeader('expires');
           }
 
           expires ??= _expires;
@@ -233,11 +232,11 @@ class Registrator {
 
           // Save gruu values.
           if (contact.hasParam('temp-gruu')) {
-            _ua.contact.temp_gruu =
+            _ua.contact?.temp_gruu =
                 contact.getParam('temp-gruu').replaceAll('"', '');
           }
           if (contact.hasParam('pub-gruu')) {
-            _ua.contact.pub_gruu =
+            _ua.contact?.pub_gruu =
                 contact.getParam('pub-gruu').replaceAll('"', '');
           }
 
@@ -247,11 +246,12 @@ class Registrator {
           }
         } else
         // Interval too brief RFC3261 10.2.8.
-        if (status_code.contains(RegExp(r'^423$'))) {
-          if (event.response.hasHeader('min-expires')) {
+        if (true == status_code?.contains(RegExp(r'^423$'))) {
+          if (true == event.response?.hasHeader('min-expires')) {
             // Increase our registration interval to the suggested minimum.
-            _expires =
-                num.tryParse(event.response.getHeader('min-expires')) ?? 0;
+            _expires = num.tryParse(event.response?.getHeader('min-expires'))
+                    ?.toInt() ??
+                0;
 
             if (_expires < MIN_REGISTER_EXPIRES)
               _expires = MIN_REGISTER_EXPIRES;
@@ -267,7 +267,7 @@ class Registrator {
                 event.response, DartSIP_C.causes.SIP_FAILURE_CODE);
           }
         } else {
-          String cause = utils.sipErrorCause(event.response.status_code);
+          String cause = utils.sipErrorCause(event.response?.status_code);
           _registrationFailure(event.response, cause);
         }
       }
@@ -294,8 +294,7 @@ class Registrator {
       _registrationTimer = null;
     }
 
-    List<dynamic> extraHeaders =
-        List<dynamic>.from(_extraHeaders ?? <dynamic>[]);
+    List<dynamic> extraHeaders = List<dynamic>.from(_extraHeaders);
 
     if (unregister_all) {
       extraHeaders.add('Contact: *$_extraContactParams');
@@ -329,13 +328,13 @@ class Registrator {
       _cseq += 1;
     });
     handlers.on(EventOnReceiveResponse(), (EventOnReceiveResponse event) {
-      String status_code = event.response.status_code.toString();
+      String? status_code = event.response?.status_code.toString();
       if (utils.test2XX(status_code)) {
         _unregistered(event.response);
       } else if (utils.test1XX(status_code)) {
         // Ignore provisional responses.
       } else {
-        String cause = utils.sipErrorCause(event.response.status_code);
+        String cause = utils.sipErrorCause(event.response?.status_code);
         _unregistered(event.response, cause);
       }
     });
@@ -374,7 +373,7 @@ class Registrator {
     }
   }
 
-  void _unregistered([dynamic response, String cause]) {
+  void _unregistered([dynamic response, String? cause]) {
     _registering = false;
     _registered = false;
     _ua.unregistered(response: response, cause: cause);

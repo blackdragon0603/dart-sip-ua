@@ -36,10 +36,8 @@ class Id {
 
 // RFC 3261 12.1.
 class Dialog {
-  Dialog(RTCSession owner, dynamic message, String type, [int state]) {
+  Dialog(this._owner, dynamic message, String type, [int? state]) {
     state = state ?? Dialog_C.STATUS_CONFIRMED;
-    _owner = owner;
-    _ua = owner.ua;
 
     if (!message.hasHeader('contact')) {
       throw Exceptions.TypeError(
@@ -77,6 +75,7 @@ class Dialog {
         'local_tag': message.from_tag,
         'remote_tag': message.to_tag,
       });
+
       _state = state;
       local_seqnum = message.cseq;
       _local_uri = message.parseHeader('from').uri;
@@ -91,22 +90,22 @@ class Dialog {
         '$type dialog created with status ${_state == Dialog_C.STATUS_EARLY ? 'EARLY' : 'CONFIRMED'}');
   }
 
-  RTCSession _owner;
-  UA _ua;
+  final RTCSession _owner;
+  UA get _ua => _owner.ua;
   bool uac_pending_reply = false;
   bool uas_pending_reply = false;
-  int _state;
-  int _remote_seqnum;
-  URI _local_uri;
-  URI _remote_uri;
-  URI _remote_target;
-  List<dynamic> _route_set;
-  int _ack_seqnum;
-  Id _id;
-  num local_seqnum;
+  int? _state;
+  int? _remote_seqnum;
+  URI? _local_uri;
+  URI? _remote_uri;
+  URI? _remote_target;
+  List<dynamic> _route_set = <dynamic>[];
+  int? _ack_seqnum;
+  Id? _id;
+  num? local_seqnum;
 
   UA get ua => _ua;
-  Id get id => _id;
+  Id? get id => _id;
 
   RTCSession get owner => _owner;
 
@@ -126,17 +125,19 @@ class Dialog {
     _ua.destroyDialog(this);
   }
 
-  OutgoingRequest sendRequest(SipMethod method, Map<String, dynamic> options) {
+  OutgoingRequest sendRequest(SipMethod method, Map<String, dynamic>? options) {
     options = options ?? <String, dynamic>{};
     List<dynamic> extraHeaders = Utils.cloneArray(options['extraHeaders']);
     EventManager eventHandlers =
-        options['eventHandlers'] as EventManager ?? EventManager();
+        options['eventHandlers'] as EventManager? ?? EventManager();
     String body = options['body'] ?? null;
     OutgoingRequest request = _createRequest(method, extraHeaders, body);
 
     // Increase the local CSeq on authentication.
     eventHandlers.on(EventOnAuthenticated(), (EventOnAuthenticated event) {
-      local_seqnum += 1;
+      if (local_seqnum != null) {
+        local_seqnum = local_seqnum! + 1;
+      }
     });
 
     DialogRequestSender request_sender =
@@ -163,7 +164,7 @@ class Dialog {
       _ack_seqnum = request.cseq;
     }
 
-    _owner.receiveRequest(request);
+    _owner.receiveRequest.call(request);
   }
 
   // RFC 3261 12.2.1.1.
@@ -171,11 +172,16 @@ class Dialog {
       SipMethod method, List<dynamic> extraHeaders, String body) {
     extraHeaders = Utils.cloneArray(extraHeaders);
 
-    local_seqnum ??= Utils.Math.floor(Utils.Math.randomDouble() * 10000);
+    final num _local_seqnum =
+        local_seqnum ??= Utils.Math.floor(Utils.Math.randomDouble() * 10000);
 
-    num cseq = (method == SipMethod.CANCEL || method == SipMethod.ACK)
-        ? local_seqnum
-        : local_seqnum += 1;
+    num cseq;
+    if (method == SipMethod.CANCEL || method == SipMethod.ACK) {
+      cseq = _local_seqnum;
+    } else {
+      local_seqnum = _local_seqnum + 1;
+      cseq = _local_seqnum + 1;
+    }
 
     OutgoingRequest request = OutgoingRequest(
         method,
@@ -183,11 +189,11 @@ class Dialog {
         _ua,
         <String, dynamic>{
           'cseq': cseq,
-          'call_id': _id.call_id,
+          'call_id': _id?.call_id,
           'from_uri': _local_uri,
-          'from_tag': _id.local_tag,
+          'from_tag': _id?.local_tag,
           'to_uri': _remote_uri,
-          'to_tag': _id.remote_tag,
+          'to_tag': _id?.remote_tag,
           'route_set': _route_set
         },
         extraHeaders,
@@ -198,9 +204,12 @@ class Dialog {
 
   // RFC 3261 12.2.2.
   bool _checkInDialogRequest(IncomingRequest request) {
+    final int? _request_cseq = request.cseq;
     if (_remote_seqnum == null) {
-      _remote_seqnum = request.cseq;
-    } else if (request.cseq < _remote_seqnum) {
+      _remote_seqnum = _request_cseq;
+    } else if (_request_cseq == null) {
+      //
+    } else if (_request_cseq < _remote_seqnum) {
       if (request.method == SipMethod.ACK) {
         // We are not expecting any ACK with lower seqnum than the current one.
         // Or this is not the ACK we are waiting for.
@@ -212,10 +221,10 @@ class Dialog {
 
         return false;
       }
-    } else if (request.cseq > _remote_seqnum) {
+    } else if (_request_cseq > _remote_seqnum) {
       _remote_seqnum = request.cseq;
     }
-    EventManager eventHandlers = request.server_transaction;
+    TransactionBase? eventHandlers = request.server_transaction;
     // RFC3261 14.2 Modifying an Existing Session -UAS BEHAVIOR-.
     if (request.method == SipMethod.INVITE ||
         (request.method == SipMethod.UPDATE && request.body != null)) {
@@ -227,22 +236,26 @@ class Dialog {
         return false;
       } else {
         uas_pending_reply = true;
-        void Function(EventStateChanged state) stateChanged;
+        void Function(EventStateChanged state)? stateChanged;
         stateChanged = (EventStateChanged state) {
-          if (request.server_transaction.state == TransactionState.ACCEPTED ||
-              request.server_transaction.state == TransactionState.COMPLETED ||
-              request.server_transaction.state == TransactionState.TERMINATED) {
+          final TransactionState? transactionState =
+              request.server_transaction?.state;
+          if (transactionState == TransactionState.ACCEPTED ||
+              transactionState == TransactionState.COMPLETED ||
+              transactionState == TransactionState.TERMINATED) {
             uas_pending_reply = false;
-            eventHandlers.remove(EventStateChanged(), stateChanged);
+            eventHandlers?.remove(EventStateChanged(), stateChanged);
           }
         };
-        eventHandlers.on(EventStateChanged(), stateChanged);
+        eventHandlers?.on(EventStateChanged(), stateChanged);
       }
 
       // RFC3261 12.2.2 Replace the dialog's remote target URI if the request is accepted.
       if (request.hasHeader('contact')) {
-        eventHandlers.on(EventStateChanged(), (EventStateChanged state) {
-          if (request.server_transaction.state == TransactionState.ACCEPTED) {
+        eventHandlers?.on(EventStateChanged(), (EventStateChanged state) {
+          final TransactionState? transactionState =
+              request.server_transaction?.state;
+          if (transactionState == TransactionState.ACCEPTED) {
             _remote_target = request.parseHeader('contact').uri;
           }
         });
@@ -250,8 +263,10 @@ class Dialog {
     } else if (request.method == SipMethod.NOTIFY) {
       // RFC6665 3.2 Replace the dialog's remote target URI if the request is accepted.
       if (request.hasHeader('contact')) {
-        eventHandlers.on(EventStateChanged(), (EventStateChanged state) {
-          if (request.server_transaction.state == TransactionState.COMPLETED) {
+        eventHandlers?.on(EventStateChanged(), (EventStateChanged state) {
+          final TransactionState? transactionState =
+              request.server_transaction?.state;
+          if (transactionState == TransactionState.COMPLETED) {
             _remote_target = request.parseHeader('contact').uri;
           }
         });

@@ -12,22 +12,17 @@ class C {
 }
 
 class ReferNotifier {
-  ReferNotifier(rtc.RTCSession session, int id, [int expires]) {
-    _session = session;
-    _id = id;
-    _expires = expires ?? C.expires;
-    _active = true;
-
+  ReferNotifier(this._session, this._id, [this._expires = C.expires]) {
     // The creation of a Notifier results in an immediate NOTIFY.
     notify(100);
   }
 
-  rtc.RTCSession _session;
-  int _id;
-  int _expires;
-  bool _active;
+  final rtc.RTCSession _session;
+  final int _id;
+  final int _expires;
+  bool _active = true;
 
-  void notify(int code, [String reason]) {
+  void notify(int code, [String? reason]) {
     logger.debug('notify()');
 
     if (_active == false) {

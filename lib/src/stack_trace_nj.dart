@@ -16,10 +16,10 @@ class StackTraceNJ implements core.StackTrace {
       RegExp(r'#[0-9]+[\s]+(.+) \(([^\s]+)\)');
   final core.StackTrace stackTrace;
 
-  final String workingDirectory;
+  final String? workingDirectory;
   final int _skipFrames;
 
-  List<Stackframe> _frames;
+  List<Stackframe>? _frames;
 
   ///
   /// Returns a File instance for the current stackframe
@@ -77,16 +77,11 @@ class StackTraceNJ implements core.StackTrace {
       }
     }
 
-    if (formatted.isEmpty) {
-      return null;
-    } else {
-      return formatted.join('\n');
-    }
+    return formatted.join('\n');
   }
 
   List<Stackframe> get frames {
-    _frames ??= _extractFrames();
-    return _frames;
+    return _frames ??= _extractFrames();
   }
 
   @override
@@ -106,13 +101,15 @@ class StackTraceNJ implements core.StackTrace {
         skipFrames--;
         continue;
       }
-      Match match = stackTraceRegex.matchAsPrefix(line);
+      Match? match = stackTraceRegex.matchAsPrefix(line);
       if (match == null) continue;
 
       // source is one of two formats
       // file:///.../squarephone_app/filename.dart:column:line
       // package:/squarephone/.path./filename.dart:column:line
-      String source = match.group(2);
+      String? source = match.group(2);
+      if (source == null) continue;
+
       List<String> sourceParts = source.split(':');
       ArgumentError.value(sourceParts.length == 4,
           "Stackframe source does not contain the expeted no of colons '$source'");
@@ -128,7 +125,7 @@ class StackTraceNJ implements core.StackTrace {
       }
 
       // the actual contents of the line (sort of)
-      String details = match.group(1);
+      String? details = match.group(1);
 
       sourcePath = sourcePath.replaceAll('<anonymous closure>', '()');
       sourcePath = sourcePath.replaceAll('package:', '');
