@@ -9,11 +9,10 @@ import '../utils.dart';
 import 'transaction_base.dart';
 
 class AckClientTransaction extends TransactionBase {
-  AckClientTransaction(UA ua, Transport transport, OutgoingRequest request,
-      this._eventHandlers) {
+  AckClientTransaction(
+      UA ua, Transport transport, OutgoingRequest request, this._eventHandlers)
+      : super(ua: ua, transport: transport, request: request) {
     id = 'z9hG4bK${Math.floor(Math.random() * 10000000)}';
-    this.transport = transport;
-    this.request = request;
 
     String via = 'SIP/2.0/${transport.via_transport}';
 
@@ -26,7 +25,7 @@ class AckClientTransaction extends TransactionBase {
 
   @override
   void send() {
-    if (true != transport?.send(request)) {
+    if (true != transport.send(request)) {
       onTransportError();
     }
   }

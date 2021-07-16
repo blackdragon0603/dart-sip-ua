@@ -9,11 +9,9 @@ import '../ua.dart';
 import 'transaction_base.dart';
 
 class InviteServerTransaction extends TransactionBase {
-  InviteServerTransaction(UA ua, Transport transport, IncomingRequest request) {
+  InviteServerTransaction(UA ua, Transport transport, IncomingRequest request)
+      : super(ua: ua, transport: transport, request: request) {
     id = request.via_branch;
-    this.ua = ua;
-    this.transport = transport;
-    this.request = request;
     last_response = IncomingMessage();
     request.server_transaction = this;
 
@@ -42,7 +40,7 @@ class InviteServerTransaction extends TransactionBase {
     }
 
     stateChanged(TransactionState.TERMINATED);
-    ua?.destroyTransaction(this);
+    ua.destroyTransaction(this);
   }
 
   void timer_I() {
@@ -55,7 +53,7 @@ class InviteServerTransaction extends TransactionBase {
 
     if (state == TransactionState.ACCEPTED) {
       stateChanged(TransactionState.TERMINATED);
-      ua?.destroyTransaction(this);
+      ua.destroyTransaction(this);
     }
   }
 
@@ -76,12 +74,12 @@ class InviteServerTransaction extends TransactionBase {
       clearTimeout(I);
 
       stateChanged(TransactionState.TERMINATED);
-      ua?.destroyTransaction(this);
+      ua.destroyTransaction(this);
     }
   }
 
   void resend_provisional() {
-    if (true != transport?.send(last_response)) {
+    if (true != transport.send(last_response)) {
       onTransportError();
     }
   }
@@ -93,7 +91,7 @@ class InviteServerTransaction extends TransactionBase {
     if (status_code >= 100 && status_code <= 199) {
       switch (state) {
         case TransactionState.PROCEEDING:
-          if (true != transport?.send(response)) {
+          if (true != transport.send(response)) {
             onTransportError();
           }
           last_response = response;
@@ -126,7 +124,7 @@ class InviteServerTransaction extends TransactionBase {
       /* falls through */
       if (state == TransactionState.ACCEPTED) {
         // Note that this point will be reached for proceeding state also.
-        if (true != transport?.send(response)) {
+        if (true != transport.send(response)) {
           onTransportError();
           if (onFailure != null) {
             onFailure();
@@ -143,7 +141,7 @@ class InviteServerTransaction extends TransactionBase {
             _resendProvisionalTimer = null;
           }
 
-          if (true != transport?.send(response)) {
+          if (true != transport.send(response)) {
             onTransportError();
             if (onFailure != null) {
               onFailure();

@@ -43,9 +43,8 @@ class WebSocketInterface implements Socket {
   @override
   void Function()? onconnect;
   @override
-  void Function(
-          WebSocketInterface socket, bool error, int closeCode, String reason)?
-      ondisconnect;
+  void Function(WebSocketInterface socket, bool error, int? closeCode,
+      String? reason)? ondisconnect;
   @override
   void Function(dynamic data)? ondata;
   @override
@@ -90,7 +89,7 @@ class WebSocketInterface implements Socket {
         _onMessage(data);
       };
 
-      _ws?.onClose = (int closeCode, String closeReason) {
+      _ws?.onClose = (int? closeCode, String? closeReason) {
         logger.debug('Closed [$closeCode, $closeReason]!');
         _connected = false;
         _onClose(true, closeCode, closeReason);
@@ -155,7 +154,7 @@ class WebSocketInterface implements Socket {
     onconnect?.call();
   }
 
-  void _onClose(bool wasClean, int code, String reason) {
+  void _onClose(bool wasClean, int? code, String? reason) {
     logger.debug('WebSocket $_url closed');
     if (wasClean == false) {
       logger.debug('WebSocket abrupt disconnection');

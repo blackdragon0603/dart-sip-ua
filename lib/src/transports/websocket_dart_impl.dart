@@ -8,7 +8,7 @@ import 'package:sip_ua/src/sip_ua_helper.dart';
 import '../logger.dart';
 
 typedef OnMessageCallback = void Function(dynamic msg);
-typedef OnCloseCallback = void Function(int code, String reason);
+typedef OnCloseCallback = void Function(int? code, String? reason);
 typedef OnOpenCallback = void Function();
 
 class WebSocketImpl {
@@ -26,19 +26,21 @@ class WebSocketImpl {
   }) async {
     logger.info('connect $_url, ${webSocketSettings.extraHeaders}, $protocols');
     try {
+      WebSocket socket;
       if (webSocketSettings.allowBadCertificate) {
         /// Allow self-signed certificate, for test only.
-        _socket = await _connectForBadCertificate(_url, webSocketSettings);
+        socket = await _connectForBadCertificate(_url, webSocketSettings);
       } else {
-        _socket = await WebSocket.connect(_url,
+        socket = await WebSocket.connect(_url,
             protocols: protocols, headers: webSocketSettings.extraHeaders);
       }
+      _socket = socket;
 
       onOpen?.call();
-      _socket?.listen((dynamic data) {
+      socket.listen((dynamic data) {
         onMessage?.call(data);
       }, onDone: () {
-        onClose?.call(_socket?.closeCode, _socket?.closeReason);
+        onClose?.call(socket.closeCode, socket.closeReason);
       });
     } catch (e) {
       onClose?.call(500, e.toString());

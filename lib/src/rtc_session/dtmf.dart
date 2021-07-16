@@ -73,7 +73,7 @@ class DTMF extends EventManager {
 
     if (_mode == DtmfMode.RFC2833) {
       RTCDTMFSender? dtmfSender = _session.dtmfSender;
-      dtmfSender?.insertDTMF(_tone,
+      dtmfSender?.insertDTMF(tone,
           duration: _duration, interToneGap: _interToneGap);
     } else if (_mode == DtmfMode.INFO) {
       extraHeaders.add('Content-Type: application/dtmf-relay');

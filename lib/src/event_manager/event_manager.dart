@@ -67,7 +67,7 @@ class EventManager {
       targets.remove(listener);
       targets.add(listener);
     } catch (e, s) {
-      logger.error(e, null, s);
+      logger.error(e.toString(), null, s);
     }
   }
 

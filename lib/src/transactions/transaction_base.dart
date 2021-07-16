@@ -14,16 +14,22 @@ enum TransactionState {
   CONFIRMED
 }
 
-abstract class TransactionBase extends EventManager {
+class TransactionBase extends EventManager {
+  TransactionBase({
+    required this.ua,
+    required this.transport,
+    required this.request,
+  });
+
   String? id;
-  UA? ua;
-  Transport? transport;
+  UA ua;
+  Transport transport;
   TransactionState? state;
   IncomingMessage? last_response;
   dynamic request;
-  void onTransportError();
+  void onTransportError() {}
 
-  void send();
+  void send() {}
 
   void receiveResponse(int status_code, IncomingMessage response,
       [void Function()? onSuccess, void Function()? onFailure]) {

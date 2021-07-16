@@ -205,6 +205,7 @@ class Dialog {
   // RFC 3261 12.2.2.
   bool _checkInDialogRequest(IncomingRequest request) {
     final int? _request_cseq = request.cseq;
+    var _remote_seqnum = this._remote_seqnum;
     if (_remote_seqnum == null) {
       _remote_seqnum = _request_cseq;
     } else if (_request_cseq == null) {
@@ -224,6 +225,7 @@ class Dialog {
     } else if (_request_cseq > _remote_seqnum) {
       _remote_seqnum = request.cseq;
     }
+    this._remote_seqnum = _remote_seqnum;
     TransactionBase? eventHandlers = request.server_transaction;
     // RFC3261 14.2 Modifying an Existing Session -UAS BEHAVIOR-.
     if (request.method == SipMethod.INVITE ||
@@ -244,7 +246,10 @@ class Dialog {
               transactionState == TransactionState.COMPLETED ||
               transactionState == TransactionState.TERMINATED) {
             uas_pending_reply = false;
-            eventHandlers?.remove(EventStateChanged(), stateChanged);
+
+            if (stateChanged != null) {
+              eventHandlers?.remove(EventStateChanged(), stateChanged);
+            }
           }
         };
         eventHandlers?.on(EventStateChanged(), stateChanged);

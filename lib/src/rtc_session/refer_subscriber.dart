@@ -110,7 +110,7 @@ class ReferSubscriber extends EventManager {
     }
   }
 
-  void _requestSucceeded(IncomingMessage response) {
+  void _requestSucceeded(IncomingMessage? response) {
     logger.debug('REFER succeeded');
 
     logger.debug('emit "requestSucceeded"');
@@ -118,7 +118,7 @@ class ReferSubscriber extends EventManager {
     emit(EventReferRequestSucceeded(response: response));
   }
 
-  void _requestFailed(IncomingMessage response, dynamic cause) {
+  void _requestFailed(IncomingMessage? response, dynamic cause) {
     logger.debug('REFER failed');
 
     logger.debug('emit "requestFailed"');

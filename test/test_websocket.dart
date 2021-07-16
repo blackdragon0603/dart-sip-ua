@@ -47,7 +47,7 @@ List<void Function()> testFunctions = <void Function()>[
           completer.complete();
         };
         client.ondisconnect = (WebSocketInterface socket, bool error,
-            int closeCode, String reason) {
+            int? closeCode, String? reason) {
           print(
               'ondisconnect => error $error [$closeCode] ${reason.toString()}');
           expect(client.isConnected(), false);

@@ -38,7 +38,10 @@ class DialogRequestSender {
       _eventHandlers.emit(EventOnAuthenticated(request: event.request));
     });
     handlers.on(EventOnReceiveResponse(), (EventOnReceiveResponse event) {
-      _receiveResponse(event.response);
+      final response = event.response;
+      if (response != null) {
+        _receiveResponse(response);
+      }
     });
 
     _request_sender = RequestSender(_ua, _request, handlers);
@@ -60,7 +63,9 @@ class DialogRequestSender {
                 TransactionState.COMPLETED ||
             request_sender?.clientTransaction?.state ==
                 TransactionState.TERMINATED) {
-          eventHandlers?.remove(EventStateChanged(), stateChanged);
+          if (stateChanged != null) {
+            eventHandlers?.remove(EventStateChanged(), stateChanged);
+          }
           _dialog.uac_pending_reply = false;
         }
       };
@@ -69,7 +74,7 @@ class DialogRequestSender {
     }
   }
 
-  void _receiveResponse(IncomingResponse response) {
+  void _receiveResponse(IncomingMessage response) {
     // RFC3261 12.2.1.2 408 or 481 is received for a request within a dialog.
     if (response.status_code == 408 || response.status_code == 481) {
       _eventHandlers.emit(EventOnDialogError(response: response));

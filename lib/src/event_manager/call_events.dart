@@ -6,8 +6,8 @@ import 'events.dart';
 
 class CallEvent extends EventType {
   CallEvent(this.session);
-  RTCSession session;
-  String? get id => session.id;
+  RTCSession? session;
+  String? get id => session?.id;
 }
 
 class EventNewRTCSession extends CallEvent {

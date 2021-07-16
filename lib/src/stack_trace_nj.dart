@@ -67,6 +67,7 @@ class StackTraceNJ implements core.StackTrace {
       }
       String newLine = '$sourceFile:${stackFrame.lineNo}';
 
+      final workingDirectory = this.workingDirectory;
       if (workingDirectory != null) {
         formatted.add('file:///' + workingDirectory + newLine);
       } else {
@@ -148,5 +149,5 @@ class Stackframe {
   final File sourceFile;
   final int lineNo;
   final int column;
-  final String details;
+  final String? details;
 }

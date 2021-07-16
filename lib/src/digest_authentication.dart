@@ -24,9 +24,9 @@ class Credentials {
         map['username'], map['password'], map['realm'], map['ha1']);
   }
   String username;
-  String password;
+  String? password;
   String realm;
-  String ha1;
+  String? ha1;
 }
 
 class DigestAuthentication {

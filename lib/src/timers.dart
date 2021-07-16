@@ -17,11 +17,11 @@ class Timers {
       60000; // See RFC 3261 Section 13.3.1.1
 }
 
-Timer setTimeout(Function fn, int duration) {
+Timer setTimeout(void Function() fn, int duration) {
   return Timer(Duration(milliseconds: duration), fn);
 }
 
-void clearTimeout(Timer timer) {
+void clearTimeout(Timer? timer) {
   if (timer != null) {
     timer.cancel();
   }
@@ -33,7 +33,7 @@ Timer setInterval(Function fn, int interval) {
   });
 }
 
-void clearInterval(Timer timer) {
+void clearInterval(Timer? timer) {
   if (timer != null) {
     timer.cancel();
   }

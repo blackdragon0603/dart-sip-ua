@@ -55,18 +55,21 @@ class RequestSender {
       _receiveResponse(event.response);
     });
 
-    switch (_method) {
-      case SipMethod.INVITE:
-        clientTransaction =
-            InviteClientTransaction(_ua, _ua.transport, _request, handlers);
-        break;
-      case SipMethod.ACK:
-        clientTransaction =
-            AckClientTransaction(_ua, _ua.transport, _request, handlers);
-        break;
-      default:
-        clientTransaction =
-            NonInviteClientTransaction(_ua, _ua.transport, _request, handlers);
+    final transport = _ua.transport;
+    if (transport != null) {
+      switch (_method) {
+        case SipMethod.INVITE:
+          clientTransaction =
+              InviteClientTransaction(_ua, transport, _request, handlers);
+          break;
+        case SipMethod.ACK:
+          clientTransaction =
+              AckClientTransaction(_ua, transport, _request, handlers);
+          break;
+        default:
+          clientTransaction =
+              NonInviteClientTransaction(_ua, transport, _request, handlers);
+      }
     }
 
     clientTransaction?.send();
@@ -76,10 +79,10 @@ class RequestSender {
   * Called from client transaction when receiving a correct response to the request.
   * Authenticate request if needed or pass the response back to the applicant.
   */
-  void _receiveResponse(IncomingResponse response) {
-    ParsedData challenge;
+  void _receiveResponse(IncomingMessage? response) {
+    ParsedData? challenge;
     String authorization_header_name;
-    int status_code = response.status_code;
+    int status_code = response?.status_code;
 
     /*
     * Authentication
@@ -88,18 +91,18 @@ class RequestSender {
     if ((status_code == 401 || status_code == 407) &&
         (_ua.configuration.password != null || _ua.configuration.ha1 != null)) {
       // Get and parse the appropriate WWW-Authenticate or Proxy-Authenticate header.
-      if (response.status_code == 401) {
-        challenge = response.parseHeader('www-authenticate');
+      if (status_code == 401) {
+        challenge = response?.parseHeader('www-authenticate');
         authorization_header_name = 'authorization';
       } else {
-        challenge = response.parseHeader('proxy-authenticate');
+        challenge = response?.parseHeader('proxy-authenticate');
         authorization_header_name = 'proxy-authorization';
       }
 
       // Verify it seems a valid challenge.
       if (challenge == null) {
         logger.debug(
-            '${response.status_code} with wrong or missing challenge, cannot authenticate');
+            '$status_code with wrong or missing challenge, cannot authenticate');
         _eventHandlers.emit(EventOnReceiveResponse(response: response));
 
         return;

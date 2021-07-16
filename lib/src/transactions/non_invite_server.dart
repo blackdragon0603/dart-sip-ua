@@ -11,11 +11,9 @@ import 'transaction_base.dart';
 
 class NonInviteServerTransaction extends TransactionBase {
   NonInviteServerTransaction(
-      UA ua, Transport transport, IncomingRequest request) {
+      UA ua, Transport transport, IncomingRequest request)
+      : super(ua: ua, transport: transport, request: request) {
     id = request.via_branch;
-    this.ua = ua;
-    this.transport = transport;
-    this.request = request;
     last_response = IncomingMessage();
     request.server_transaction = this;
 
@@ -34,7 +32,7 @@ class NonInviteServerTransaction extends TransactionBase {
   void timer_J() {
     logger.debug('Timer J expired for transaction $id');
     stateChanged(TransactionState.TERMINATED);
-    ua?.destroyTransaction(this);
+    ua.destroyTransaction(this);
   }
 
   @override
@@ -46,7 +44,7 @@ class NonInviteServerTransaction extends TransactionBase {
 
       clearTimeout(J);
       stateChanged(TransactionState.TERMINATED);
-      ua?.destroyTransaction(this);
+      ua.destroyTransaction(this);
     }
   }
 
@@ -62,13 +60,13 @@ class NonInviteServerTransaction extends TransactionBase {
       switch (state) {
         case TransactionState.TRYING:
           stateChanged(TransactionState.PROCEEDING);
-          if (true != transport?.send(response)) {
+          if (true != transport.send(response)) {
             onTransportError();
           }
           break;
         case TransactionState.PROCEEDING:
           last_response = response;
-          if (true != transport?.send(response)) {
+          if (true != transport.send(response)) {
             onTransportError();
             if (onFailure != null) {
               onFailure();
@@ -89,7 +87,7 @@ class NonInviteServerTransaction extends TransactionBase {
           J = setTimeout(() {
             timer_J();
           }, Timers.TIMER_J);
-          if (true != transport?.send(response)) {
+          if (true != transport.send(response)) {
             onTransportError();
             if (onFailure != null) {
               onFailure();

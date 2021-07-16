@@ -80,11 +80,10 @@ IncomingMessage? parseMessage(String data, UA ua) {
    * beyond the end of the body, they MUST be discarded.
    */
   if (message.hasHeader('content-length')) {
-    dynamic contentLength = message.getHeader('content-length');
+    String contentLengthHeader = message.getHeader('content-length').toString();
 
-    if (contentLength is String) {
-      contentLength = int.tryParse(contentLength) ?? 0;
-    }
+    final int contentLength = int.tryParse(contentLengthHeader) ?? 0;
+
     if (contentLength > 0) {
       List<int> encoded = utf8.encode(data);
       List<int> content = encoded.sublist(bodyStart, bodyStart + contentLength);

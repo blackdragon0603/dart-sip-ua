@@ -97,9 +97,8 @@ class _MyRegisterWidget extends State<RegisterWidget>
       _alert(context, "SIP URI");
     }
 
-    UaSettings settings = UaSettings();
+    UaSettings settings = UaSettings(webSocketUrl: _wsUriController.text);
 
-    settings.webSocketUrl = _wsUriController.text;
     settings.webSocketSettings.extraHeaders = _wsExtraHeaders;
     settings.webSocketSettings.allowBadCertificate = true;
     //settings.webSocketSettings.userAgent = 'Dart/2.8 (dart:io) for OpenSIPS.';

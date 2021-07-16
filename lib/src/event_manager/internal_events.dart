@@ -32,10 +32,10 @@ class EventOnAuthenticated extends EventType {
 }
 
 class EventSdp extends EventType {
-  EventSdp({required this.originator, required this.type, required this.sdp});
+  EventSdp({required this.originator, required this.type, this.sdp});
   String originator;
   String type;
-  String sdp;
+  String? sdp;
 }
 
 class EventSending extends EventType {
@@ -93,14 +93,14 @@ class EventReplaces extends EventType {
 class EventUpdate extends EventType {
   EventUpdate({this.request, required this.callback, required this.reject});
   dynamic request;
-  bool Function(Map<String, dynamic> options) callback;
+  bool Function(Map<String, dynamic> options)? callback;
   bool Function(Map<String, dynamic> options) reject;
 }
 
 class EventReinvite extends EventType {
   EventReinvite({this.request, required this.callback, required this.reject});
   dynamic request;
-  bool Function(Map<String, dynamic> options) callback;
+  bool Function(Map<String, dynamic> options)? callback;
   bool Function(Map<String, dynamic> options) reject;
 }
 
@@ -139,7 +139,7 @@ class EventOnRequestTimeout extends EventType {
 
 class EventOnReceiveResponse extends EventType {
   EventOnReceiveResponse({this.response});
-  IncomingResponse? response;
+  IncomingMessage? response;
 
   @override
   void sanityCheck() {}

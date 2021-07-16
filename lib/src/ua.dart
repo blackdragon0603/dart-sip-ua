@@ -237,8 +237,8 @@ class UA extends EventManager {
    * -throws {TypeError}
    *
    */
-  Message sendMessage(
-      String target, String body, Map<String, dynamic> options) {
+  Message sendMessage(String target, String body,
+      [Map<String, dynamic>? options]) {
     logger.debug('sendMessage()');
     Message message = Message(this);
     message.send(target, body, options);
@@ -440,9 +440,12 @@ class UA extends EventManager {
     required String originator,
     dynamic request,
   }) {
-    _sessions[session.id] = session;
-    emit(EventNewRTCSession(
-        session: session, originator: originator, request: request));
+    final id = session.id;
+    if (id != null) {
+      _sessions[id] = session;
+      emit(EventNewRTCSession(
+          session: session, originator: originator, request: request));
+    }
   }
 
   /**
@@ -520,15 +523,18 @@ class UA extends EventManager {
       return;
     }
 
-    // Create the server transaction.
-    if (method == SipMethod.INVITE) {
-      /* eslint-disable no-*/
-      InviteServerTransaction(this, _transport, request);
-      /* eslint-enable no-*/
-    } else if (method != SipMethod.ACK && method != SipMethod.CANCEL) {
-      /* eslint-disable no-*/
-      NonInviteServerTransaction(this, _transport, request);
-      /* eslint-enable no-*/
+    final transport = _transport;
+    if (transport != null) {
+      // Create the server transaction.
+      if (method == SipMethod.INVITE) {
+        /* eslint-disable no-*/
+        InviteServerTransaction(this, transport, request);
+        /* eslint-enable no-*/
+      } else if (method != SipMethod.ACK && method != SipMethod.CANCEL) {
+        /* eslint-disable no-*/
+        NonInviteServerTransaction(this, transport, request);
+        /* eslint-enable no-*/
+      }
     }
 
     /* RFC3261 12.2.2
@@ -566,8 +572,12 @@ class UA extends EventManager {
             if (request.hasHeader('replaces')) {
               ParsedData replaces = request.replaces;
 
-              dialog = _findDialog(
-                  replaces.call_id, replaces.from_tag, replaces.to_tag);
+              final call_id = replaces.call_id;
+              final from_tag = replaces.from_tag;
+              final to_tag = replaces.to_tag;
+              if (call_id != null && from_tag != null && to_tag != null) {
+                dialog = _findDialog(call_id, from_tag, to_tag);
+              }
               if (dialog != null) {
                 session = dialog.owner;
                 if (!session.isEnded()) {
@@ -592,8 +602,10 @@ class UA extends EventManager {
           request.reply(481);
           break;
         case SipMethod.CANCEL:
-          session =
-              _findSession(request.call_id, request.from_tag, request.to_tag);
+          final call_id = request.call_id;
+          if (call_id != null) {
+            session = _findSession(call_id, request.from_tag, request.to_tag);
+          }
           if (session != null) {
             session.receiveRequest(request);
           } else {
@@ -618,13 +630,20 @@ class UA extends EventManager {
     }
     // In-dialog request.
     else {
-      dialog = _findDialog(request.call_id, request.from_tag, request.to_tag);
+      final call_id = request.call_id;
+      final from_tag = request.from_tag;
+      final to_tag = request.to_tag;
+      if (call_id != null && from_tag != null && to_tag != null) {
+        dialog = _findDialog(call_id, from_tag, to_tag);
+      }
 
       if (dialog != null) {
         dialog.receiveRequest(request);
       } else if (method == SipMethod.NOTIFY) {
-        session =
-            _findSession(request.call_id, request.from_tag, request.to_tag);
+        final call_id = request.call_id;
+        if (call_id != null) {
+          session = _findSession(call_id, request.from_tag, request.to_tag);
+        }
         if (session != null) {
           session.receiveRequest(request);
         } else {

@@ -150,24 +150,30 @@ class SIPUAHelper extends EventManager {
 
       ua.on(EventNewRTCSession(), (EventNewRTCSession event) {
         logger.debug('newRTCSession => ' + event.toString());
-        RTCSession session = event.session;
-        if (session.direction == 'incoming') {
-          // Set event handlers.
-          session.addAllEventHandlers(
-              buildCallOptions()['eventHandlers'] as EventManager);
+        RTCSession? session = event.session;
+        if (session != null) {
+          if (session.direction == 'incoming') {
+            // Set event handlers.
+            session.addAllEventHandlers(
+                buildCallOptions()['eventHandlers'] as EventManager);
+          }
+
+          final id = event.id;
+          if (id != null) {
+            _calls[id] = Call(id, session, CallStateEnum.CALL_INITIATION);
+            _notifyCallStateListeners(
+                event, CallState(CallStateEnum.CALL_INITIATION));
+          }
         }
-        _calls[event.id] =
-            Call(event.id, session, CallStateEnum.CALL_INITIATION);
-        _notifyCallStateListeners(
-            event, CallState(CallStateEnum.CALL_INITIATION));
       });
 
       ua.on(EventNewMessage(), (EventNewMessage event) {
         logger.debug('newMessage => ' + event.toString());
         //Only notify incoming message to listener
-        if (event.message?.direction == 'incoming') {
+        final event_message = event.message;
+        if (event_message != null && event_message.direction == 'incoming') {
           SIPMessageRequest message =
-              SIPMessageRequest(event.message, event.originator, event.request);
+              SIPMessageRequest(event_message, event.originator, event.request);
           _notifyNewMessageListeners(message);
         }
       });
@@ -315,7 +321,7 @@ class SIPUAHelper extends EventManager {
     return _ua?.sendMessage(target, body, options);
   }
 
-  void terminateSessions(Map<String, dynamic> options) {
+  void terminateSessions(Map<String, Object> options) {
     _ua?.terminateSessions(options);
   }
 
@@ -533,7 +539,7 @@ class TransportState {
 class SIPMessageRequest {
   SIPMessageRequest(this.message, this.originator, this.request);
   dynamic request;
-  String originator;
+  String? originator;
   Message message;
 }
 
@@ -575,7 +581,10 @@ enum DtmfMode {
 }
 
 class UaSettings {
-  String? webSocketUrl;
+  UaSettings({
+    required this.webSocketUrl,
+  });
+  String webSocketUrl;
   WebSocketSettings webSocketSettings = WebSocketSettings();
 
   /// May not need to register if on a static IP, just Auth

@@ -13,12 +13,10 @@ import '../utils.dart';
 import 'transaction_base.dart';
 
 class InviteClientTransaction extends TransactionBase {
-  InviteClientTransaction(UA ua, Transport transport, OutgoingRequest request,
-      this._eventHandlers) {
+  InviteClientTransaction(
+      UA ua, Transport transport, OutgoingRequest request, this._eventHandlers)
+      : super(ua: ua, transport: transport, request: request) {
     id = 'z9hG4bK${Math.floor(Math.random() * 10000000)}';
-    this.ua = ua;
-    this.transport = transport;
-    this.request = request;
     request.transaction = this;
 
     String via = 'SIP/2.0/${transport.via_transport}';
@@ -27,7 +25,7 @@ class InviteClientTransaction extends TransactionBase {
 
     this.request.setHeader('via', via);
 
-    this.ua?.newTransaction(this);
+    this.ua.newTransaction(this);
   }
   final EventManager _eventHandlers;
 
@@ -45,7 +43,7 @@ class InviteClientTransaction extends TransactionBase {
       timer_B();
     }, Timers.TIMER_B);
 
-    if (true != transport?.send(request)) {
+    if (true != transport.send(request)) {
       onTransportError();
     }
   }
@@ -62,7 +60,7 @@ class InviteClientTransaction extends TransactionBase {
     }
 
     stateChanged(TransactionState.TERMINATED);
-    ua?.destroyTransaction(this);
+    ua.destroyTransaction(this);
   }
 
   // RFC 6026 7.2.
@@ -72,7 +70,7 @@ class InviteClientTransaction extends TransactionBase {
     if (state == TransactionState.ACCEPTED) {
       clearTimeout(B);
       stateChanged(TransactionState.TERMINATED);
-      ua?.destroyTransaction(this);
+      ua.destroyTransaction(this);
     }
   }
 
@@ -81,7 +79,7 @@ class InviteClientTransaction extends TransactionBase {
     logger.debug('Timer B expired for transaction $id');
     if (state == TransactionState.CALLING) {
       stateChanged(TransactionState.TERMINATED);
-      ua?.destroyTransaction(this);
+      ua.destroyTransaction(this);
       _eventHandlers.emit(EventOnRequestTimeout());
     }
   }
@@ -90,7 +88,7 @@ class InviteClientTransaction extends TransactionBase {
     logger.debug('Timer D expired for transaction $id');
     clearTimeout(B);
     stateChanged(TransactionState.TERMINATED);
-    ua?.destroyTransaction(this);
+    ua.destroyTransaction(this);
   }
 
   void sendACK(IncomingMessage response) {
@@ -109,7 +107,7 @@ class InviteClientTransaction extends TransactionBase {
       timer_D();
     }, Timers.TIMER_D);
 
-    transport?.send(ack);
+    transport.send(ack);
   }
 
   void cancel(String? reason) {
@@ -133,7 +131,7 @@ class InviteClientTransaction extends TransactionBase {
       cancel.setHeader('reason', reason);
     }
 
-    transport?.send(cancel);
+    transport.send(cancel);
   }
 
   @override

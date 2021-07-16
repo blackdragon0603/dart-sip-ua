@@ -108,7 +108,9 @@ class Transport {
 
     _close_requested = false;
     status = C.STATUS_CONNECTING;
-    onconnecting?.call(socket, _recover_attempts);
+
+    final _s = socket;
+    if (_s != null) onconnecting?.call(_s, _recover_attempts);
 
     if (!_close_requested) {
       // Bind socket event callbacks.
@@ -135,18 +137,21 @@ class Transport {
 
     // Unbind socket event callbacks.
     socket?.onconnect = () => () {};
-    socket?.ondisconnect =
-        (WebSocketInterface socket, bool error, int closeCode, String reason) =>
-            () {};
+    socket?.ondisconnect = (WebSocketInterface socket, bool error,
+            int? closeCode, String? reason) =>
+        () {};
     socket?.ondata = (dynamic data) => () {};
 
     socket?.disconnect();
-    ondisconnect?.call(
-        socket,
-        ErrorCause(
-            cause: 'disconnect',
-            status_code: 0,
-            reason_phrase: 'close by local'));
+    final _socket = socket;
+    if (_socket != null) {
+      ondisconnect?.call(
+          _socket,
+          ErrorCause(
+              cause: 'disconnect',
+              status_code: 0,
+              reason_phrase: 'close by local'));
+    }
   }
 
   bool send(dynamic data) {
@@ -201,7 +206,7 @@ class Transport {
         // Connect the socket.
         connect();
       }
-    }, k * 1000);
+    }, k.toInt() * 1000);
   }
 
   /**
@@ -234,7 +239,7 @@ class Transport {
 
     num idx = Math.floor(Math.randomDouble() * candidates.length);
 
-    socket = candidates[idx]['socket'];
+    socket = candidates[idx.toInt()]['socket'];
   }
 
   /**
@@ -254,7 +259,7 @@ class Transport {
   }
 
   void _onDisconnect(
-      WebSocketInterface socket, bool error, int closeCode, String reason) {
+      WebSocketInterface socket, bool error, int? closeCode, String? reason) {
     status = C.STATUS_DISCONNECTED;
     ondisconnect?.call(
         socket,

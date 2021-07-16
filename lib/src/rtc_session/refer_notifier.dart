@@ -12,13 +12,14 @@ class C {
 }
 
 class ReferNotifier {
-  ReferNotifier(this._session, this._id, [this._expires = C.expires]) {
+  ReferNotifier(this._session, this._id, [int? expires])
+      : _expires = expires ?? C.expires {
     // The creation of a Notifier results in an immediate NOTIFY.
     notify(100);
   }
 
   final rtc.RTCSession _session;
-  final int _id;
+  final int? _id;
   final int _expires;
   bool _active = true;
 

@@ -103,7 +103,7 @@ bool rfc3261_16_3_4() {
 }
 
 bool rfc3261_18_3_request() {
-  int len = Utils.str_utf8_length(message?.body);
+  int len = Utils.str_utf8_length(message?.body ?? '');
   dynamic contentLength = message?.getHeader('content-length');
 
   if (contentLength != null && contentLength is String) {
@@ -192,7 +192,7 @@ bool rfc3261_8_1_3_3() {
 }
 
 bool rfc3261_18_3_response() {
-  int len = Utils.str_utf8_length(message?.body);
+  int len = Utils.str_utf8_length(message?.body ?? '');
   // ignore: always_specify_types
   var contentLength = message?.getHeader('content-length');
 

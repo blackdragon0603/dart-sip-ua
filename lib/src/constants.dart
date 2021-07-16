@@ -110,7 +110,9 @@ enum SipMethod {
 }
 
 class SipMethodHelper {
-  static String getName(SipMethod method) {
+  static String? getName(SipMethod? method) {
+    if (method == null) return null;
+
     int period = method.toString().indexOf('.');
     return method.toString().substring(period + 1);
   }

@@ -31,7 +31,8 @@ class OutgoingRequest {
       [Map<String, dynamic>? params, List<dynamic>? extraHeaders, this.body]) {
     params = params ?? <String, dynamic>{};
 
-    this.extraHeaders = utils.cloneArray(extraHeaders);
+    this.extraHeaders =
+        extraHeaders != null ? utils.cloneArray(extraHeaders) : <dynamic>[];
 
     // Fill the Common SIP Request Headers.
 
@@ -95,7 +96,7 @@ class OutgoingRequest {
   UA ua;
   Map<String, dynamic> headers = <String, dynamic>{};
   SipMethod method;
-  URI ruri;
+  URI? ruri;
   String? body;
   List<dynamic> extraHeaders = <dynamic>[];
   late NameAddrHeader to;
@@ -262,8 +263,9 @@ class OutgoingRequest {
     msg += 'Supported: ${supported.join(',')}\r\n';
     msg += 'User-Agent: $userAgent\r\n';
 
+    final body = this.body;
     if (body != null) {
-      logger.debug('Outgoing Message: ' + body);
+      logger.debug('Outgoing Message: ${body}');
       //Here we should calculate the real content length for UTF8
       List<int> encoded = utf8.encode(body);
       int length = encoded.length;
@@ -295,7 +297,7 @@ class OutgoingRequest {
 }
 
 class InitialOutgoingInviteRequest extends OutgoingRequest {
-  InitialOutgoingInviteRequest(URI ruri, UA ua,
+  InitialOutgoingInviteRequest(URI? ruri, UA ua,
       [Map<String, dynamic>? params, List<dynamic>? extraHeaders, String? body])
       : super(SipMethod.INVITE, ruri, ua, params, extraHeaders, body) {
     transaction = null;
@@ -520,8 +522,8 @@ class IncomingRequest extends IncomingMessage {
       [String? reason,
       List<dynamic>? extraHeaders,
       String? body,
-      Function? onSuccess,
-      Function? onFailure]) {
+      void Function()? onSuccess,
+      void Function()? onFailure]) {
     List<dynamic> supported = <dynamic>[];
     dynamic to = getHeader('To');
 
@@ -533,7 +535,8 @@ class IncomingRequest extends IncomingMessage {
     }
 
     reason = reason ?? DartSIP_C.REASON_PHRASE[code] ?? '';
-    extraHeaders = utils.cloneArray(extraHeaders);
+    extraHeaders =
+        extraHeaders != null ? utils.cloneArray(extraHeaders) : extraHeaders;
 
     String response = 'SIP/2.0 $code $reason\r\n';
 
@@ -562,8 +565,10 @@ class IncomingRequest extends IncomingMessage {
     response += 'Call-ID: $call_id\r\n';
     response += 'CSeq: $cseq ${SipMethodHelper.getName(method)}\r\n';
 
-    for (dynamic header in extraHeaders) {
-      response += '${header.trim()}\r\n';
+    if (extraHeaders != null) {
+      for (dynamic header in extraHeaders) {
+        response += '${header.trim()}\r\n';
+      }
     }
 
     // Supported.

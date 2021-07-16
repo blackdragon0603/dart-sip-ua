@@ -156,7 +156,7 @@ URI? normalizeTarget(dynamic target, [String? domain]) {
     // - Last fragment is the desired domain.
     // - Otherwise append the given domain argument.
   } else if (target is String) {
-    List<String> targetArray = (target as String).split('@');
+    List<String> targetArray = target.split('@');
     String targetUser;
     String targetDomain;
 

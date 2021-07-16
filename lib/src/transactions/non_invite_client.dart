@@ -11,12 +11,10 @@ import '../utils.dart';
 import 'transaction_base.dart';
 
 class NonInviteClientTransaction extends TransactionBase {
-  NonInviteClientTransaction(UA ua, Transport transport,
-      OutgoingRequest request, this._eventHandlers) {
+  NonInviteClientTransaction(
+      UA ua, Transport transport, OutgoingRequest request, this._eventHandlers)
+      : super(ua: ua, transport: transport, request: request) {
     id = 'z9hG4bK${Math.floor(Math.random())}';
-    this.ua = ua;
-    this.transport = transport;
-    this.request = request;
 
     String via = 'SIP/2.0/${transport.via_transport}';
 
@@ -42,7 +40,7 @@ class NonInviteClientTransaction extends TransactionBase {
       timer_F();
     }, Timers.TIMER_F);
 
-    if (true != transport?.send(request)) {
+    if (true != transport.send(request)) {
       onTransportError();
     }
   }
@@ -53,20 +51,20 @@ class NonInviteClientTransaction extends TransactionBase {
     clearTimeout(F);
     clearTimeout(K);
     stateChanged(TransactionState.TERMINATED);
-    ua?.destroyTransaction(this);
+    ua.destroyTransaction(this);
     _eventHandlers.emit(EventOnTransportError());
   }
 
   void timer_F() {
     logger.debug('Timer F expired for transaction $id');
     stateChanged(TransactionState.TERMINATED);
-    ua?.destroyTransaction(this);
+    ua.destroyTransaction(this);
     _eventHandlers.emit(EventOnRequestTimeout());
   }
 
   void timer_K() {
     stateChanged(TransactionState.TERMINATED);
-    ua?.destroyTransaction(this);
+    ua.destroyTransaction(this);
   }
 
   @override

@@ -14,7 +14,7 @@ class NameAddrHeader {
   }
   final URI _uri;
   Map<dynamic, dynamic> _parameters = <dynamic, dynamic>{};
-  String _display_name;
+  String? _display_name;
   /**
    * Parse the given string and returns a NameAddrHeader instance or null if
    * it is an invalid NameAddrHeader.
@@ -30,26 +30,26 @@ class NameAddrHeader {
 
   URI get uri => _uri;
 
-  String get display_name => _display_name;
+  String? get display_name => _display_name;
 
   set display_name(dynamic value) {
     _display_name = (value == 0) ? '0' : value;
   }
 
-  void setParam(String key, dynamic value) {
+  void setParam(String? key, dynamic value) {
     if (key != null) {
       _parameters[key.toLowerCase()] =
           (value == null) ? null : value.toString();
     }
   }
 
-  dynamic getParam(String key) {
+  dynamic getParam(String? key) {
     if (key != null) {
       return _parameters[key.toLowerCase()];
     }
   }
 
-  bool hasParam(String key) {
+  bool hasParam(String? key) {
     if (key != null) {
       return _parameters.containsKey(key.toLowerCase());
     }
@@ -80,6 +80,7 @@ class NameAddrHeader {
 
   @override
   String toString() {
+    final _display_name = this._display_name;
     String body = (_display_name != null && _display_name.length > 0)
         ? '"${_quote(_display_name)}" '
         : '';

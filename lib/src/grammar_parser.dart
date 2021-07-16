@@ -9,7 +9,7 @@ import 'data.dart';
 
 class GrammarParser {
   static final List<String> _ascii =
-      new List<String>.generate(128, (c) => new String.fromCharCode(c));
+      List<String>.generate(128, (c) => new String.fromCharCode(c));
 
   static final List<String> _expect0 = <String>["\'\\r\\n\'"];
 
@@ -2681,11 +2681,11 @@ class GrammarParser {
     [33, 126, 128, 65535]
   ];
 
-  List<Map<int, List>> _cache = new List<Map<int, List>>(252);
+  List<Map<int, List>> _cache = List<Map<int, List>>.filled(252, <int, List>{});
 
-  List<int> _cachePos = new List<int>.filled(252, -1);
+  List<int> _cachePos = List<int>.filled(252, -1);
 
-  List<bool> _cacheable = new List<bool>.filled(252, false);
+  List<bool> _cacheable = List<bool>.filled(252, false);
 
   int _ch = -1;
 
@@ -2693,13 +2693,13 @@ class GrammarParser {
 
   List<GrammarParserError> _errors = <GrammarParserError>[];
 
-  List<String> _expected = <String>[];
+  List<String?> _expected = <String>[];
 
   int _failurePos = -1;
 
   List<int> _input = <int>[];
 
-  int? _inputLen;
+  int _inputLen = 0;
 
   int _startPos = 0;
 
@@ -2731,7 +2731,7 @@ class GrammarParser {
     map[start] = [result, _cursor, success];
   }
 
-  void _failure([List<String> expected]) {
+  void _failure([List<String?>? expected]) {
     if (_failurePos > _cursor) {
       return;
     }
@@ -2739,22 +2739,25 @@ class GrammarParser {
       _expected = [];
       _failurePos = _cursor;
     }
-    if (_token != null) {
-      var alias = _tokenAliases[_token];
-      var flag = _tokenFlags[_token];
-      var name = _tokenNames[_token];
-      if (_failurePos > _tokenStart &&
+
+    final token = _token;
+    final tokenStart = _tokenStart;
+    if (token != null && tokenStart != null) {
+      var alias = _tokenAliases[token];
+      var flag = _tokenFlags[token];
+      var name = _tokenNames[token];
+      if (_failurePos > tokenStart &&
           _failurePos == _inputLen &&
           (flag & 1) != 0) {
         var message = "Unterminated '$name'";
-        _errors.add(new GrammarParserError(GrammarParserError.UNTERMINATED,
-            _failurePos, _tokenStart, message));
-        _expected.addAll(expected);
-      } else if (_failurePos > _tokenStart && (flag & 1) != 0) {
+        _errors.add(new GrammarParserError(
+            GrammarParserError.UNTERMINATED, _failurePos, tokenStart, message));
+        _expected.addAll(expected ?? [null]);
+      } else if (_failurePos > tokenStart && (flag & 1) != 0) {
         var message = "Malformed '$name'";
         _errors.add(new GrammarParserError(
-            GrammarParserError.MALFORMED, _failurePos, _tokenStart, message));
-        _expected.addAll(expected);
+            GrammarParserError.MALFORMED, _failurePos, tokenStart, message));
+        _expected.addAll(expected ?? [null]);
       } else {
         _expected.add(alias);
       }
@@ -2860,7 +2863,7 @@ class GrammarParser {
 
   List _list(Object first, List next) {
     var length = next.length;
-    var list = new List(length + 1);
+    var list = List<dynamic>.filled(length + 1, null);
     list[0] = first;
     for (var i = 0; i < length; i++) {
       list[i + 1] = next[i][1];
@@ -2868,7 +2871,7 @@ class GrammarParser {
     return list;
   }
 
-  String _matchAny() {
+  String? _matchAny() {
     success = _cursor < _inputLen;
     if (success) {
       String result;
@@ -2887,7 +2890,7 @@ class GrammarParser {
     return null;
   }
 
-  String _matchChar(int ch, String string) {
+  String? _matchChar(int ch, String string) {
     success = _ch == ch;
     if (success) {
       var result = string;
@@ -2901,7 +2904,7 @@ class GrammarParser {
     return null;
   }
 
-  String _matchMapping(int start, int end, List<bool> mapping) {
+  String? _matchMapping(int start, int end, List<bool> mapping) {
     success = _ch >= start && _ch <= end;
     if (success) {
       if (mapping[_ch - start]) {
@@ -2923,7 +2926,7 @@ class GrammarParser {
     return null;
   }
 
-  String _matchRange(int start, int end) {
+  String? _matchRange(int start, int end) {
     success = _ch >= start && _ch <= end;
     if (success) {
       String result;
@@ -2942,7 +2945,7 @@ class GrammarParser {
     return null;
   }
 
-  String _matchRanges(List<int> ranges) {
+  String? _matchRanges(List<int> ranges) {
     var length = ranges.length;
     for (var i = 0; i < length; i += 2) {
       if (_ch >= ranges[i]) {
@@ -2968,7 +2971,7 @@ class GrammarParser {
     return null;
   }
 
-  String _matchString(List<int> codePoints, String string,
+  String? _matchString(List<int> codePoints, String string,
       [bool ignoreCase = false]) {
     var length = codePoints.length;
     success = _cursor + length <= _inputLen;
@@ -3148,7 +3151,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(58, ':');
           if (!success) break;
           seq[1] = $$;
@@ -3211,7 +3214,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(44, ',');
           if (!success) break;
           seq[1] = $$;
@@ -3466,7 +3469,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(61, '=');
           if (!success) break;
           seq[1] = $$;
@@ -3552,7 +3555,7 @@ class GrammarParser {
             }
           }
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(58, ':');
           if (!success) break;
           seq[1] = $$;
@@ -3705,7 +3708,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_dec_octet();
           if (!success) break;
-          var seq = new List(7)..[0] = $$;
+          var seq = List.filled(7, null)..[0] = $$;
           $$ = _matchChar(46, '.');
           if (!success) break;
           seq[1] = $$;
@@ -3794,7 +3797,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(13)..[0] = $$;
+                var seq = List.filled(13, null)..[0] = $$;
                 $$ = _matchChar(58, ':');
                 if (!success) break;
                 seq[1] = $$;
@@ -3845,7 +3848,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(11)..[0] = $$;
+                var seq = List.filled(11, null)..[0] = $$;
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
                 seq[1] = $$;
@@ -3890,7 +3893,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(10)..[0] = $$;
+                var seq = List.filled(10, null)..[0] = $$;
                 var testing0 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -3905,7 +3908,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -3968,7 +3971,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(9)..[0] = $$;
+                var seq = List.filled(9, null)..[0] = $$;
                 var testing1 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -3983,7 +3986,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4022,7 +4025,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4079,7 +4082,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(8)..[0] = $$;
+                var seq = List.filled(8, null)..[0] = $$;
                 var testing3 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -4094,7 +4097,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4133,7 +4136,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4172,7 +4175,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4223,7 +4226,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(7)..[0] = $$;
+                var seq = List.filled(7, null)..[0] = $$;
                 var testing6 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -4238,7 +4241,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4277,7 +4280,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4316,7 +4319,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4355,7 +4358,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4400,7 +4403,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(8)..[0] = $$;
+                var seq = List.filled(8, null)..[0] = $$;
                 var testing10 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -4415,7 +4418,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4454,7 +4457,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4493,7 +4496,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4532,7 +4535,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4571,7 +4574,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4616,7 +4619,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(8)..[0] = $$;
+                var seq = List.filled(8, null)..[0] = $$;
                 var testing15 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -4631,7 +4634,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4670,7 +4673,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4709,7 +4712,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4748,7 +4751,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4787,7 +4790,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4826,7 +4829,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -4872,7 +4875,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(12)..[0] = $$;
+                var seq = List.filled(12, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -4920,7 +4923,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(10)..[0] = $$;
+                var seq = List.filled(10, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -4962,7 +4965,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(8)..[0] = $$;
+                var seq = List.filled(8, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -4998,7 +5001,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(6)..[0] = $$;
+                var seq = List.filled(6, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5028,7 +5031,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(4)..[0] = $$;
+                var seq = List.filled(4, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5052,7 +5055,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_ls32();
                 if (!success) break;
                 seq[1] = $$;
@@ -5070,7 +5073,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5096,7 +5099,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(13)..[0] = $$;
+                var seq = List.filled(13, null)..[0] = $$;
                 $$ = _matchChar(58, ':');
                 if (!success) break;
                 seq[1] = $$;
@@ -5147,7 +5150,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(12)..[0] = $$;
+                var seq = List.filled(12, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5195,7 +5198,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(10)..[0] = $$;
+                var seq = List.filled(10, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5237,7 +5240,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(8)..[0] = $$;
+                var seq = List.filled(8, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5273,7 +5276,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(6)..[0] = $$;
+                var seq = List.filled(6, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5303,7 +5306,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(4)..[0] = $$;
+                var seq = List.filled(4, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5327,7 +5330,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_ls32();
                 if (!success) break;
                 seq[1] = $$;
@@ -5345,7 +5348,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_h16();
                 if (!success) break;
                 seq[1] = $$;
@@ -5363,7 +5366,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(11)..[0] = $$;
+                var seq = List.filled(11, null)..[0] = $$;
                 $$ = _matchString(_strings3, '::', false);
                 if (!success) break;
                 seq[1] = $$;
@@ -5408,7 +5411,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(10)..[0] = $$;
+                var seq = List.filled(10, null)..[0] = $$;
                 var testing21 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -5423,7 +5426,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5486,7 +5489,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(9)..[0] = $$;
+                var seq = List.filled(9, null)..[0] = $$;
                 var testing22 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -5501,7 +5504,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5540,7 +5543,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5597,7 +5600,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(8)..[0] = $$;
+                var seq = List.filled(8, null)..[0] = $$;
                 var testing24 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -5612,7 +5615,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5651,7 +5654,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5690,7 +5693,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5741,7 +5744,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(7)..[0] = $$;
+                var seq = List.filled(7, null)..[0] = $$;
                 var testing27 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -5756,7 +5759,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5795,7 +5798,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5834,7 +5837,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5873,7 +5876,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5918,7 +5921,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(8)..[0] = $$;
+                var seq = List.filled(8, null)..[0] = $$;
                 var testing31 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -5933,7 +5936,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -5972,7 +5975,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6011,7 +6014,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6050,7 +6053,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6089,7 +6092,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6134,7 +6137,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(8)..[0] = $$;
+                var seq = List.filled(8, null)..[0] = $$;
                 var testing36 = _testing;
                 _testing = _cursor;
                 switch (_ch >= 0 && _ch <= 1114111
@@ -6149,7 +6152,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6188,7 +6191,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6227,7 +6230,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6266,7 +6269,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6305,7 +6308,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6344,7 +6347,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _matchChar(58, ':');
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_h16();
                       if (!success) break;
                       seq[1] = $$;
@@ -6442,7 +6445,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchChar(91, '[');
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_IPv6address();
           if (!success) break;
           seq[1] = $$;
@@ -6513,7 +6516,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _matchChar(60, '<');
           if (!success) break;
           seq[1] = $$;
@@ -6575,7 +6578,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_DQUOTE();
           if (!success) break;
           seq[1] = $$;
@@ -6628,7 +6631,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(40, '(');
           if (!success) break;
           seq[1] = $$;
@@ -6707,7 +6710,7 @@ class GrammarParser {
                   }
                 }
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_CRLF();
                 if (!success) break;
                 seq[1] = $$;
@@ -6731,7 +6734,7 @@ class GrammarParser {
           success = true;
           _testing = testing0;
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing2;
           for (var first = true, reps;;) {
             $$ = _parse_WSP();
@@ -7078,7 +7081,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchChar(62, '>');
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_SWS();
           if (!success) break;
           seq[1] = $$;
@@ -7140,7 +7143,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_DQUOTE();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_SWS();
           if (!success) break;
           seq[1] = $$;
@@ -7251,7 +7254,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(41, ')');
           if (!success) break;
           seq[1] = $$;
@@ -7403,7 +7406,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_Method();
           if (!success) break;
-          var seq = new List(5)..[0] = $$;
+          var seq = List.filled(5, null)..[0] = $$;
           $$ = _parse_SP();
           if (!success) break;
           seq[1] = $$;
@@ -7531,7 +7534,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(59, ';');
           if (!success) break;
           seq[1] = $$;
@@ -7597,7 +7600,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_uri_scheme();
           if (!success) break;
-          var seq = new List(6)..[0] = $$;
+          var seq = List.filled(6, null)..[0] = $$;
           $$ = _matchChar(58, ':');
           if (!success) break;
           seq[1] = $$;
@@ -7635,14 +7638,18 @@ class GrammarParser {
               ///CODE_START
               var header;
               try {
-                data.uri = URI(data.scheme, data.user, data.host, data.port,
-                    data.uri_params, data.uri_headers);
+                final data_user = data.user;
+                final data_host = data.host;
+                if (data_host != null && data_user != null) {
+                  data.uri = URI(data.scheme, data_user, data_host, data.port,
+                      data.uri_params, data.uri_headers);
+                }
                 data.scheme = null;
                 data.user = null;
                 data.host = null;
                 data.host_type = null;
                 data.port = null;
-                data.uri_params = null;
+                data.uri_params = {};
 
                 if (startRule == 'SIP_URI') {
                   $$ = data.uri;
@@ -7690,7 +7697,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_uri_scheme();
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           $$ = _matchChar(58, ':');
           if (!success) break;
           seq[1] = $$;
@@ -7715,7 +7722,11 @@ class GrammarParser {
             {
               ///CODE_START
               try {
-                data.uri = URI(data.scheme, data.user, data.host, data.port);
+                final data_host = data.host;
+                final data_user = data.user;
+                if (data_host != null && data_user != null) {
+                  data.uri = URI(data.scheme, data_user, data_host, data.port);
+                }
                 data.scheme = null;
                 data.user = null;
                 data.host = null;
@@ -7769,7 +7780,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings18, 'SIP', true);
           if (!success) break;
-          var seq = new List(5)..[0] = $$;
+          var seq = List.filled(5, null)..[0] = $$;
           $$ = _matchChar(47, '/');
           if (!success) break;
           seq[1] = $$;
@@ -7886,7 +7897,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(47, '/');
           if (!success) break;
           seq[1] = $$;
@@ -7984,7 +7995,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(42, '*');
           if (!success) break;
           seq[1] = $$;
@@ -8133,7 +8144,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SIP_Version();
           if (!success) break;
-          var seq = new List(5)..[0] = $$;
+          var seq = List.filled(5, null)..[0] = $$;
           $$ = _parse_SP();
           if (!success) break;
           seq[1] = $$;
@@ -8212,7 +8223,7 @@ class GrammarParser {
             }
           }
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing1 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -8236,7 +8247,7 @@ class GrammarParser {
                     }
                   }
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_TEXT_UTF8char();
                   if (!success) break;
                   seq[1] = $$;
@@ -8535,7 +8546,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchChar(47, '/');
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_path_segments();
           if (!success) break;
           seq[1] = $$;
@@ -8581,7 +8592,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_scheme();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(58, ':');
           if (!success) break;
           seq[1] = $$;
@@ -8709,7 +8720,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings51, 'algorithm', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -8864,7 +8875,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_auth_param_name();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -9051,7 +9062,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings28, 'expires', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -9106,7 +9117,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchChar(113, 'q');
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -9157,7 +9168,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_word();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch >= 0 && _ch <= 1114111
@@ -9171,7 +9182,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(64, '@');
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_word();
                 if (!success) break;
                 seq[1] = $$;
@@ -9269,7 +9280,7 @@ class GrammarParser {
                   while (true) {
                     $$ = _matchString(_strings45, 'Digest', true);
                     if (!success) break;
-                    var seq = new List(4)..[0] = $$;
+                    var seq = List.filled(4, null)..[0] = $$;
                     $$ = _parse_LWS();
                     if (!success) break;
                     seq[1] = $$;
@@ -9291,7 +9302,7 @@ class GrammarParser {
                           while (true) {
                             $$ = _parse_COMMA();
                             if (!success) break;
-                            var seq = new List(2)..[0] = $$;
+                            var seq = List.filled(2, null)..[0] = $$;
                             $$ = _parse_digest_cln();
                             if (!success) break;
                             seq[1] = $$;
@@ -9497,7 +9508,7 @@ class GrammarParser {
             _failure(_expect81);
           }
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -9513,7 +9524,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_contact_params();
                   if (!success) break;
                   seq[1] = $$;
@@ -9556,11 +9567,14 @@ class GrammarParser {
               var header;
               if (data.multi_header == null) data.multi_header = [];
               try {
-                header =
-                    NameAddrHeader(data.uri, data.display_name, data.params);
+                final data_uri = data.uri;
+                if (data_uri != null) {
+                  header =
+                      NameAddrHeader(data_uri, data.display_name, data.params);
+                }
                 data.uri = null;
                 data.display_name = null;
-                data.params = null;
+                data.params = {};
               } catch (e) {
                 header = null;
               }
@@ -9761,7 +9775,7 @@ class GrammarParser {
           while (true) {
             $$ = _matchChar(49, '1');
             if (!success) break;
-            var seq = new List(3)..[0] = $$;
+            var seq = List.filled(3, null)..[0] = $$;
             $$ = _parse_DIGIT();
             if (!success) break;
             seq[1] = $$;
@@ -9782,7 +9796,7 @@ class GrammarParser {
           while (true) {
             $$ = _matchRange(49, 57);
             if (!success) break;
-            var seq = new List(2)..[0] = $$;
+            var seq = List.filled(2, null)..[0] = $$;
             $$ = _parse_DIGIT();
             if (!success) break;
             seq[1] = $$;
@@ -9809,7 +9823,7 @@ class GrammarParser {
           while (true) {
             $$ = _matchString(_strings4, '25', false);
             if (!success) break;
-            var seq = new List(2)..[0] = $$;
+            var seq = List.filled(2, null)..[0] = $$;
             $$ = _matchRange(48, 53);
             if (!success) break;
             seq[1] = $$;
@@ -9827,7 +9841,7 @@ class GrammarParser {
           while (true) {
             $$ = _matchChar(50, '2');
             if (!success) break;
-            var seq = new List(3)..[0] = $$;
+            var seq = List.filled(3, null)..[0] = $$;
             $$ = _matchRange(48, 52);
             if (!success) break;
             seq[1] = $$;
@@ -9848,7 +9862,7 @@ class GrammarParser {
           while (true) {
             $$ = _matchRange(49, 57);
             if (!success) break;
-            var seq = new List(2)..[0] = $$;
+            var seq = List.filled(2, null)..[0] = $$;
             $$ = _parse_DIGIT();
             if (!success) break;
             seq[1] = $$;
@@ -9875,7 +9889,7 @@ class GrammarParser {
           while (true) {
             $$ = _matchRange(49, 57);
             if (!success) break;
-            var seq = new List(2)..[0] = $$;
+            var seq = List.filled(2, null)..[0] = $$;
             $$ = _parse_DIGIT();
             if (!success) break;
             seq[1] = $$;
@@ -10440,7 +10454,7 @@ class GrammarParser {
           success = true;
           _testing = testing0;
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           switch (_getState(_transitions59)) {
             case 0:
               var startPos2 = _startPos;
@@ -10456,7 +10470,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_token();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   var testing2 = _testing;
                   for (var reps = [];;) {
                     _testing = _cursor;
@@ -10468,7 +10482,7 @@ class GrammarParser {
                         while (true) {
                           $$ = _parse_LWS();
                           if (!success) break;
-                          var seq = new List(2)..[0] = $$;
+                          var seq = List.filled(2, null)..[0] = $$;
                           $$ = _parse_token();
                           if (!success) break;
                           seq[1] = $$;
@@ -10627,7 +10641,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings47, 'domain', true);
           if (!success) break;
-          var seq = new List(6)..[0] = $$;
+          var seq = List.filled(6, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -10673,7 +10687,7 @@ class GrammarParser {
                     }
                   }
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_URI();
                   if (!success) break;
                   seq[1] = $$;
@@ -10738,7 +10752,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_alphanum();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -10873,7 +10887,7 @@ class GrammarParser {
             while (true) {
               $$ = _matchChar(37, '%');
               if (!success) break;
-              var seq = new List(3)..[0] = $$;
+              var seq = List.filled(3, null)..[0] = $$;
               $$ = _parse_HEXDIG();
               if (!success) break;
               seq[1] = $$;
@@ -11150,7 +11164,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_event_package();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -11165,7 +11179,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _matchChar(46, '.');
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_event_template();
                   if (!success) break;
                   seq[1] = $$;
@@ -11246,7 +11260,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_DIGIT();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_DIGIT();
           if (!success) break;
           seq[1] = $$;
@@ -11427,7 +11441,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings84, 'from-tag', false);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -11540,7 +11554,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_token();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch >= 0 && _ch <= 1114111
@@ -11555,7 +11569,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_EQUAL();
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_gen_value();
                 if (!success) break;
                 seq[1] = $$;
@@ -11643,7 +11657,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_HEXDIG();
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           $$ = _parse_HEXDIG();
@@ -11704,7 +11718,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings33, 'handling', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -11793,7 +11807,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_hname();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _matchChar(61, '=');
           if (!success) break;
           seq[1] = $$;
@@ -11815,7 +11829,7 @@ class GrammarParser {
               if (data.uri_headers[hname] == null) {
                 data.uri_headers[hname] = [hvalue];
               } else {
-                data.uri_headers[hname].add(hvalue);
+                data.uri_headers[hname]?.add(hvalue);
               }
 
               ///CODE_END
@@ -11950,7 +11964,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchChar(63, '?');
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_header();
           if (!success) break;
           seq[1] = $$;
@@ -11969,7 +11983,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _matchChar(38, '&');
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_header();
                   if (!success) break;
                   seq[1] = $$;
@@ -12030,7 +12044,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_hex4();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_hex4();
           if (!success) break;
           seq[1] = $$;
@@ -12067,7 +12081,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_HEXDIG();
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           $$ = _parse_HEXDIG();
           if (!success) break;
           seq[1] = $$;
@@ -12107,7 +12121,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_hex4();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_hex4();
           if (!success) break;
           seq[1] = $$;
@@ -12173,7 +12187,7 @@ class GrammarParser {
             _failure(_expect61);
           }
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch >= 0 && _ch <= 1114111
@@ -12188,7 +12202,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(63, '?');
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_query();
                 if (!success) break;
                 seq[1] = $$;
@@ -12519,7 +12533,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _parse_domainlabel();
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _matchChar(46, '.');
                       if (!success) break;
                       seq[1] = $$;
@@ -12550,7 +12564,7 @@ class GrammarParser {
                 }
               }
               if (!success) break;
-              var seq = new List(3)..[0] = $$;
+              var seq = List.filled(3, null)..[0] = $$;
               $$ = _parse_toplabel();
               if (!success) break;
               seq[1] = $$;
@@ -12629,7 +12643,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_host();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch >= 0 && _ch <= 1114111
@@ -12644,7 +12658,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(58, ':');
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_port();
                 if (!success) break;
                 seq[1] = $$;
@@ -12849,7 +12863,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings16, 'lr', true);
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch >= 0 && _ch <= 1114111
@@ -12863,7 +12877,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(61, '=');
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_token();
                 if (!success) break;
                 seq[1] = $$;
@@ -12946,7 +12960,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_h16();
                 if (!success) break;
-                var seq = new List(3)..[0] = $$;
+                var seq = List.filled(3, null)..[0] = $$;
                 $$ = _matchChar(58, ':');
                 if (!success) break;
                 seq[1] = $$;
@@ -12991,7 +13005,7 @@ class GrammarParser {
             while (true) {
               $$ = _parse_h16();
               if (!success) break;
-              var seq = new List(3)..[0] = $$;
+              var seq = List.filled(3, null)..[0] = $$;
               $$ = _matchChar(58, ':');
               if (!success) break;
               seq[1] = $$;
@@ -13062,7 +13076,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_m_attribute();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -13196,7 +13210,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings15, 'maddr=', true);
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_host();
           if (!success) break;
           seq[1] = $$;
@@ -13316,7 +13330,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_m_type();
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           $$ = _parse_SLASH();
           if (!success) break;
           seq[1] = $$;
@@ -13338,7 +13352,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_m_parameter();
                   if (!success) break;
                   seq[1] = $$;
@@ -13403,7 +13417,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings13, 'method=', true);
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_Method();
           if (!success) break;
           seq[1] = $$;
@@ -13487,7 +13501,7 @@ class GrammarParser {
           success = true;
           _testing = testing0;
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           $$ = _parse_LAQUOT();
           if (!success) break;
           seq[1] = $$;
@@ -13534,7 +13548,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings17, '//', false);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_authority();
           if (!success) break;
           seq[1] = $$;
@@ -13579,7 +13593,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings48, 'nonce', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -13657,7 +13671,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings49, 'opaque', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -13708,7 +13722,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_uric_no_slash();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -13787,7 +13801,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_auth_scheme();
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           $$ = _parse_LWS();
           if (!success) break;
           seq[1] = $$;
@@ -13809,7 +13823,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_COMMA();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_auth_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -13906,7 +13920,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_pname();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch >= 0 && _ch <= 1114111
@@ -13920,7 +13934,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(61, '=');
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_pvalue();
                 if (!success) break;
                 seq[1] = $$;
@@ -14295,7 +14309,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_segment();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -14311,7 +14325,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _matchChar(47, '/');
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_segment();
                   if (!success) break;
                   seq[1] = $$;
@@ -14524,7 +14538,7 @@ class GrammarParser {
               success = true;
               _testing = testing0;
               if (!success) break;
-              var seq = new List(5)..[0] = $$;
+              var seq = List.filled(5, null)..[0] = $$;
               var testing1 = _testing;
               _testing = _cursor;
               $$ = _parse_DIGIT();
@@ -14803,7 +14817,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings54, 'qop', true);
           if (!success) break;
-          var seq = new List(5)..[0] = $$;
+          var seq = List.filled(5, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -14818,7 +14832,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_qop_value();
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 var testing0 = _testing;
                 for (var reps = [];;) {
                   _testing = _cursor;
@@ -14833,7 +14847,7 @@ class GrammarParser {
                       while (true) {
                         $$ = _matchChar(44, ',');
                         if (!success) break;
-                        var seq = new List(2)..[0] = $$;
+                        var seq = List.filled(2, null)..[0] = $$;
                         $$ = _parse_qop_value();
                         if (!success) break;
                         seq[1] = $$;
@@ -15049,7 +15063,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchChar(92, '\\');
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           switch (_getState(_transitions24)) {
             case 0:
               var startPos1 = _startPos;
@@ -15129,7 +15143,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           $$ = _parse_DQUOTE();
           if (!success) break;
           seq[1] = $$;
@@ -15232,7 +15246,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_SWS();
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           $$ = _parse_DQUOTE();
           if (!success) break;
           seq[1] = $$;
@@ -15331,7 +15345,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchChar(48, '0');
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch == 46
@@ -15346,7 +15360,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(46, '.');
                 if (!success) break;
-                var seq = new List(4)..[0] = $$;
+                var seq = List.filled(4, null)..[0] = $$;
                 var testing1 = _testing;
                 _testing = _cursor;
                 $$ = _parse_DIGIT();
@@ -15435,7 +15449,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings46, 'realm', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -15513,7 +15527,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings57, 'cause', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -15656,7 +15670,7 @@ class GrammarParser {
             while (true) {
               $$ = _parse_name_addr();
               if (!success) break;
-              var seq = new List(2)..[0] = $$;
+              var seq = List.filled(2, null)..[0] = $$;
               var testing0 = _testing;
               for (var reps = [];;) {
                 _testing = _cursor;
@@ -15672,7 +15686,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _parse_SEMI();
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_rr_param();
                       if (!success) break;
                       seq[1] = $$;
@@ -15730,10 +15744,14 @@ class GrammarParser {
             var header;
             if (data.multi_header == null) data.multi_header = [];
             try {
-              header = NameAddrHeader(data.uri, data.display_name, data.params);
+              final data_uri = data.uri;
+              if (data_uri != null) {
+                header =
+                    NameAddrHeader(data_uri, data.display_name, data.params);
+              }
               data.uri = null;
               data.display_name = null;
-              data.params = null;
+              data.params = {};
             } catch (e) {
               header = null;
             }
@@ -16055,7 +16073,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings74, 'rport', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -16086,7 +16104,7 @@ class GrammarParser {
                     success = true;
                     _testing = testing1;
                     if (!success) break;
-                    var seq = new List(5)..[0] = $$;
+                    var seq = List.filled(5, null)..[0] = $$;
                     var testing2 = _testing;
                     _testing = _cursor;
                     $$ = _parse_DIGIT();
@@ -16205,7 +16223,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_name_addr();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -16221,7 +16239,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_rr_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -16415,7 +16433,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings79, 'refresher', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -16497,7 +16515,7 @@ class GrammarParser {
             while (true) {
               $$ = _parse_ALPHA();
               if (!success) break;
-              var seq = new List(2)..[0] = $$;
+              var seq = List.filled(2, null)..[0] = $$;
               var testing0 = _testing;
               for (var reps = [];;) {
                 _testing = _cursor;
@@ -16619,7 +16637,7 @@ class GrammarParser {
             }
           }
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing1 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -16635,7 +16653,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _matchChar(59, ';');
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -16697,7 +16715,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_via_host();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch >= 0 && _ch <= 1114111
@@ -16712,7 +16730,7 @@ class GrammarParser {
               while (true) {
                 $$ = _parse_COLON();
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_via_port();
                 if (!success) break;
                 seq[1] = $$;
@@ -16767,7 +16785,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_protocol_name();
           if (!success) break;
-          var seq = new List(5)..[0] = $$;
+          var seq = List.filled(5, null)..[0] = $$;
           $$ = _parse_SLASH();
           if (!success) break;
           seq[1] = $$;
@@ -16829,7 +16847,7 @@ class GrammarParser {
                   while (true) {
                     $$ = _parse_userinfo();
                     if (!success) break;
-                    var seq = new List(2)..[0] = $$;
+                    var seq = List.filled(2, null)..[0] = $$;
                     $$ = _matchChar(64, '@');
                     if (!success) break;
                     seq[1] = $$;
@@ -16853,7 +16871,7 @@ class GrammarParser {
               success = true;
               _testing = testing1;
               if (!success) break;
-              var seq = new List(2)..[0] = $$;
+              var seq = List.filled(2, null)..[0] = $$;
               $$ = _parse_hostport();
               if (!success) break;
               seq[1] = $$;
@@ -16903,7 +16921,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings50, 'stale', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -16969,7 +16987,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings28, 'expires', true);
                 if (!success) break;
-                var seq = new List(3)..[0] = $$;
+                var seq = List.filled(3, null)..[0] = $$;
                 $$ = _parse_EQUAL();
                 if (!success) break;
                 seq[1] = $$;
@@ -17029,7 +17047,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings61, 'reason', true);
                 if (!success) break;
-                var seq = new List(3)..[0] = $$;
+                var seq = List.filled(3, null)..[0] = $$;
                 $$ = _parse_EQUAL();
                 if (!success) break;
                 seq[1] = $$;
@@ -17080,7 +17098,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings62, 'retry_after', true);
                 if (!success) break;
-                var seq = new List(3)..[0] = $$;
+                var seq = List.filled(3, null)..[0] = $$;
                 $$ = _parse_EQUAL();
                 if (!success) break;
                 seq[1] = $$;
@@ -17144,7 +17162,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings61, 'reason', true);
                 if (!success) break;
-                var seq = new List(3)..[0] = $$;
+                var seq = List.filled(3, null)..[0] = $$;
                 $$ = _parse_EQUAL();
                 if (!success) break;
                 seq[1] = $$;
@@ -17195,7 +17213,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings28, 'expires', true);
                 if (!success) break;
-                var seq = new List(3)..[0] = $$;
+                var seq = List.filled(3, null)..[0] = $$;
                 $$ = _parse_EQUAL();
                 if (!success) break;
                 seq[1] = $$;
@@ -17246,7 +17264,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchString(_strings62, 'retry_after', true);
                 if (!success) break;
-                var seq = new List(3)..[0] = $$;
+                var seq = List.filled(3, null)..[0] = $$;
                 $$ = _parse_EQUAL();
                 if (!success) break;
                 seq[1] = $$;
@@ -17409,7 +17427,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings44, 'tag', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -17501,7 +17519,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings83, 'to-tag', false);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -17825,7 +17843,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_ALPHA();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -17995,7 +18013,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings5, 'transport=', true);
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           switch (_getState(_transitions37)) {
             case 0:
               var startPos1 = _startPos;
@@ -18127,7 +18145,7 @@ class GrammarParser {
             while (true) {
               $$ = _parse_DIGIT();
               if (!success) break;
-              var seq = new List(3)..[0] = $$;
+              var seq = List.filled(3, null)..[0] = $$;
               var testing0 = _testing;
               _testing = _cursor;
               $$ = _parse_DIGIT();
@@ -18200,7 +18218,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings14, 'ttl=', true);
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_ttl();
           if (!success) break;
           seq[1] = $$;
@@ -18412,7 +18430,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(59, ';');
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_uri_parameter();
                 if (!success) break;
                 seq[1] = $$;
@@ -18784,7 +18802,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings10, 'user=', true);
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           switch (_getState(_transitions38)) {
             case 0:
               var startPos1 = _startPos;
@@ -18955,7 +18973,7 @@ class GrammarParser {
           success = true;
           _testing = testing0;
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           switch (_getState(_transitions25)) {
             case 0:
               var startPos1 = _startPos;
@@ -18988,7 +19006,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(58, ':');
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_password();
                 if (!success) break;
                 seq[1] = $$;
@@ -19066,7 +19084,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_hex8();
           if (!success) break;
-          var seq = new List(9)..[0] = $$;
+          var seq = List.filled(9, null)..[0] = $$;
           $$ = _matchChar(45, '-');
           if (!success) break;
           seq[1] = $$;
@@ -19148,7 +19166,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings73, 'branch', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -19304,7 +19322,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings71, 'maddr', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -19363,7 +19381,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_sent_protocol();
           if (!success) break;
-          var seq = new List(4)..[0] = $$;
+          var seq = List.filled(4, null)..[0] = $$;
           $$ = _parse_LWS();
           if (!success) break;
           seq[1] = $$;
@@ -19385,7 +19403,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_via_params();
                   if (!success) break;
                   seq[1] = $$;
@@ -19582,7 +19600,7 @@ class GrammarParser {
               success = true;
               _testing = testing0;
               if (!success) break;
-              var seq = new List(5)..[0] = $$;
+              var seq = List.filled(5, null)..[0] = $$;
               var testing1 = _testing;
               _testing = _cursor;
               $$ = _parse_DIGIT();
@@ -19667,7 +19685,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings72, 'received', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -19750,7 +19768,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings70, 'ttl', true);
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_EQUAL();
           if (!success) break;
           seq[1] = $$;
@@ -20021,7 +20039,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings43, 'x-', true);
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_token();
           if (!success) break;
           seq[1] = $$;
@@ -20112,7 +20130,7 @@ class GrammarParser {
 
   static List<bool> _unmap(List<int> mapping) {
     var length = mapping.length;
-    var result = new List<bool>(length * 31);
+    var result = List<bool>.filled(length * 31, false);
     var offset = 0;
     for (var i = 0; i < length; i++) {
       var v = mapping[i];
@@ -20158,7 +20176,7 @@ class GrammarParser {
           errors.add(error);
         }
       }
-      var names = new Set<String>();
+      var names = new Set<String?>();
       names.addAll(_expected);
       if (names.contains(null)) {
         var string = getc(_failurePos);
@@ -20190,7 +20208,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_event_type();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -20206,7 +20224,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_COMMA();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_event_type();
                   if (!success) break;
                   seq[1] = $$;
@@ -20272,7 +20290,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_CSeq_value();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_LWS();
           if (!success) break;
           seq[1] = $$;
@@ -20322,7 +20340,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_word();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           _testing = _cursor;
           switch (_ch >= 0 && _ch <= 1114111
@@ -20336,7 +20354,7 @@ class GrammarParser {
               while (true) {
                 $$ = _matchChar(64, '@');
                 if (!success) break;
-                var seq = new List(2)..[0] = $$;
+                var seq = List.filled(2, null)..[0] = $$;
                 $$ = _parse_word();
                 if (!success) break;
                 seq[1] = $$;
@@ -20432,7 +20450,7 @@ class GrammarParser {
                   while (true) {
                     $$ = _parse_contact_param();
                     if (!success) break;
-                    var seq = new List(2)..[0] = $$;
+                    var seq = List.filled(2, null)..[0] = $$;
                     var testing0 = _testing;
                     for (var reps = [];;) {
                       _testing = _cursor;
@@ -20448,7 +20466,7 @@ class GrammarParser {
                           while (true) {
                             $$ = _parse_COMMA();
                             if (!success) break;
-                            var seq = new List(2)..[0] = $$;
+                            var seq = List.filled(2, null)..[0] = $$;
                             $$ = _parse_contact_param();
                             if (!success) break;
                             seq[1] = $$;
@@ -20555,7 +20573,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_disp_type();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -20571,7 +20589,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_disp_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -20633,7 +20651,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_content_coding();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -20649,7 +20667,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_COMMA();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_content_coding();
                   if (!success) break;
                   seq[1] = $$;
@@ -20819,7 +20837,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_event_type();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -20835,7 +20853,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_event_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -20979,7 +20997,7 @@ class GrammarParser {
             _failure(_expect81);
           }
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -20995,7 +21013,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_from_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -21037,9 +21055,12 @@ class GrammarParser {
               ///CODE_START
               var tag = data.tag;
               try {
-                $$ = NameAddrHeader(data.uri, data.display_name, data.params);
-                if (tag != null) {
-                  $$.setParam('tag', tag);
+                final data_uri = data.uri;
+                if (data_uri != null) {
+                  $$ = NameAddrHeader(data_uri, data.display_name, data.params);
+                  if (tag != null) {
+                    $$.setParam('tag', tag);
+                  }
                 }
               } catch (e) {
                 $$ == -1;
@@ -21232,7 +21253,7 @@ class GrammarParser {
             }
           }
           if (!success) break;
-          var seq = new List(5)..[0] = $$;
+          var seq = List.filled(5, null)..[0] = $$;
           $$ = _parse_LAQUOT();
           if (!success) break;
           seq[1] = $$;
@@ -21257,7 +21278,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_generic_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -21301,7 +21322,10 @@ class GrammarParser {
             {
               ///CODE_START
               try {
-                $$ = NameAddrHeader(data.uri, data.display_name, data.params);
+                final data_uri = data.uri;
+                if (data_uri != null) {
+                  $$ = NameAddrHeader(data_uri, data.display_name, data.params);
+                }
               } catch (e) {
                 $$ == -1;
               }
@@ -21359,7 +21383,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_option_tag();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -21375,7 +21399,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_COMMA();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_option_tag();
                   if (!success) break;
                   seq[1] = $$;
@@ -21466,7 +21490,7 @@ class GrammarParser {
             _failure(_expect112);
           }
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -21482,7 +21506,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_reason_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -21568,7 +21592,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_rec_route();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -21584,7 +21608,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_COMMA();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_rec_route();
                   if (!success) break;
                   seq[1] = $$;
@@ -21703,7 +21727,7 @@ class GrammarParser {
             _failure(_expect81);
           }
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -21719,7 +21743,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_generic_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -21760,7 +21784,10 @@ class GrammarParser {
             {
               ///CODE_START
               try {
-                $$ = NameAddrHeader(data.uri, data.display_name, data.params);
+                final data_uri = data.uri;
+                if (data_uri != null) {
+                  $$ = NameAddrHeader(data_uri, data.display_name, data.params);
+                }
               } catch (e) {
                 $$ = -1;
               }
@@ -21797,7 +21824,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_call_id();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -21813,7 +21840,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_replaces_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -21948,7 +21975,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_option_tag();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -21964,7 +21991,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_COMMA();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_option_tag();
                   if (!success) break;
                   seq[1] = $$;
@@ -22030,7 +22057,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_route_param();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -22046,7 +22073,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_COMMA();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_route_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -22112,7 +22139,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_s_e_expires();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -22128,7 +22155,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_s_e_params();
                   if (!success) break;
                   seq[1] = $$;
@@ -22246,7 +22273,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_substate_value();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -22262,7 +22289,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_subexp_params();
                   if (!success) break;
                   seq[1] = $$;
@@ -22335,7 +22362,7 @@ class GrammarParser {
             while (true) {
               $$ = _parse_option_tag();
               if (!success) break;
-              var seq = new List(2)..[0] = $$;
+              var seq = List.filled(2, null)..[0] = $$;
               var testing1 = _testing;
               for (var reps = [];;) {
                 _testing = _cursor;
@@ -22351,7 +22378,7 @@ class GrammarParser {
                     while (true) {
                       $$ = _parse_COMMA();
                       if (!success) break;
-                      var seq = new List(2)..[0] = $$;
+                      var seq = List.filled(2, null)..[0] = $$;
                       $$ = _parse_option_tag();
                       if (!success) break;
                       seq[1] = $$;
@@ -22458,7 +22485,7 @@ class GrammarParser {
             _failure(_expect81);
           }
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -22474,7 +22501,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_SEMI();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_to_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -22516,9 +22543,12 @@ class GrammarParser {
               ///CODE_START
               var tag = data.tag;
               try {
-                $$ = NameAddrHeader(data.uri, data.display_name, data.params);
-                if (tag != null) {
-                  $$.setParam('tag', tag);
+                final data_uri = data.uri;
+                if (data_uri != null) {
+                  $$ = NameAddrHeader(data_uri, data.display_name, data.params);
+                  if (tag != null) {
+                    $$.setParam('tag', tag);
+                  }
                 }
               } catch (e) {
                 $$ = -1;
@@ -22556,7 +22586,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_via_param();
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -22572,7 +22602,7 @@ class GrammarParser {
                 while (true) {
                   $$ = _parse_COMMA();
                   if (!success) break;
-                  var seq = new List(2)..[0] = $$;
+                  var seq = List.filled(2, null)..[0] = $$;
                   $$ = _parse_via_param();
                   if (!success) break;
                   seq[1] = $$;
@@ -22671,7 +22701,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_LPAREN();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           var testing0 = _testing;
           for (var reps = [];;) {
             _testing = _cursor;
@@ -22763,7 +22793,7 @@ class GrammarParser {
         while (true) {
           $$ = _parse_header_name();
           if (!success) break;
-          var seq = new List(3)..[0] = $$;
+          var seq = List.filled(3, null)..[0] = $$;
           $$ = _parse_HCOLON();
           if (!success) break;
           seq[1] = $$;
@@ -22969,7 +22999,7 @@ class GrammarParser {
         while (true) {
           $$ = _matchString(_strings82, 'uuid:', false);
           if (!success) break;
-          var seq = new List(2)..[0] = $$;
+          var seq = List.filled(2, null)..[0] = $$;
           $$ = _parse_uuid();
           if (!success) break;
           seq[1] = $$;
@@ -23002,9 +23032,9 @@ class GrammarParser {
       throw new RangeError('pos');
     }
     _cursor = pos;
-    _cache = new List<Map<int, List>>(252);
-    _cachePos = new List<int>.filled(252, -1);
-    _cacheable = new List<bool>.filled(252, false);
+    _cache = List<Map<int, List>>.filled(252, <int, List>{});
+    _cachePos = List<int>.filled(252, -1);
+    _cacheable = List<bool>.filled(252, false);
     _ch = -1;
     _errors = <GrammarParserError>[];
     _expected = <String>[];
@@ -23023,7 +23053,7 @@ class GrammarParser {
   var data = ParsedData();
 
   int parseInt(str) {
-    return int.tryParse(str) ?? null;
+    return int.tryParse(str) ?? -1;
   }
 
   double parseFloat(str) {
@@ -23277,7 +23307,7 @@ class GrammarParser {
       startRule = "CRLF";
     }
     this.startRule = startRule;
-    return parseFunctions[startRule]();
+    return parseFunctions[startRule]?.call();
   }
 }
 

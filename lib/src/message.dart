@@ -149,17 +149,25 @@ class Message extends EventManager {
     _request.reply(status_code, reason_phrase, extraHeaders, body);
   }
 
-  void _receiveResponse(IncomingResponse response) {
+  void _receiveResponse(IncomingMessage? response) {
     if (_closed != null) {
       return;
     }
-    if (RegExp(r'^1[0-9]{2}$').hasMatch(response.status_code)) {
-      // Ignore provisional responses.
-    } else if (RegExp(r'^2[0-9]{2}$').hasMatch(response.status_code)) {
-      _succeeded('remote', response);
-    } else {
-      String cause = Utils.sipErrorCause(response.status_code);
-      _failed('remote', response.status_code, cause, response.reason_phrase);
+
+    if (response != null) {
+      final String? status_code = response.status_code.toString();
+
+      if (status_code != null &&
+          RegExp(r'^1[0-9]{2}$').hasMatch(response.status_code)) {
+        // Ignore provisional responses.
+      } else if (status_code != null &&
+          RegExp(r'^2[0-9]{2}$').hasMatch(response.status_code)) {
+        _succeeded('remote', response);
+      } else {
+        String cause = Utils.sipErrorCause(response.status_code);
+        _failed('remote', response.status_code, cause,
+            response.reason_phrase ?? '');
+      }
     }
   }
 
@@ -214,7 +222,7 @@ class Message extends EventManager {
             reason_phrase: reason_phrase)));
   }
 
-  void _succeeded(String originator, IncomingResponse response) {
+  void _succeeded(String originator, IncomingMessage response) {
     logger.debug('MESSAGE succeeded');
 
     close();

@@ -13,7 +13,7 @@ import 'utils.dart';
  *
  */
 class URI {
-  URI(String? scheme, String user, String host,
+  URI(String? scheme, String? user, String host,
       [int? port,
       Map<dynamic, dynamic>? parameters,
       Map<dynamic, dynamic>? headers]) {
@@ -157,6 +157,7 @@ class URI {
 
     String uri = '$_scheme:';
 
+    final user = this.user;
     if (user != null) {
       uri += '${utils.escapeUser(user)}@';
     }
@@ -189,6 +190,7 @@ class URI {
   String toAor({bool show_port = false}) {
     String aor = '$_scheme:';
 
+    final user = this.user;
     if (user != null) {
       aor += '${utils.escapeUser(user)}@';
     }

@@ -56,7 +56,7 @@ class Registrator {
 
     // Custom Contact URI params for REGISTER and un-REGISTER.
     setExtraContactUriParams(
-        _ua.configuration.register_extra_contact_uri_params);
+        _ua.configuration.register_extra_contact_uri_params ?? {});
 
     if (reg_id != null) {
       contact += ';reg-id=$reg_id';
@@ -115,7 +115,8 @@ class Registrator {
       extraContactUriParams = <String, dynamic>{};
     }
 
-    NameAddrHeader contact = Grammar.parse(_contact, 'Contact')[0]['parsed'];
+    NameAddrHeader contact =
+        Grammar.parse(_contact ?? '', 'Contact')[0]['parsed'];
 
     extraContactUriParams.forEach((String param_key, dynamic param_value) {
       contact.uri.setParam(param_key, param_value);
@@ -136,7 +137,7 @@ class Registrator {
         .add('Contact: $_contact;expires=$_expires$_extraContactParams');
     extraHeaders.add('Expires: $_expires');
 
-    logger.warn(_contact);
+    if (_contact != null) logger.warn(_contact!);
 
     OutgoingRequest request = OutgoingRequest(
         SipMethod.REGISTER,
@@ -178,98 +179,100 @@ class Registrator {
 
         String? status_code = event.response?.status_code.toString();
 
-        if (utils.test1XX(status_code)) {
-          // Ignore provisional responses.
-        } else if (utils.test2XX(status_code)) {
-          _registering = false;
+        if (status_code != null) {
+          if (utils.test1XX(status_code)) {
+            // Ignore provisional responses.
+          } else if (utils.test2XX(status_code)) {
+            _registering = false;
 
-          if (true != event.response?.hasHeader('Contact')) {
-            logger.debug(
-                'no Contact header in response to REGISTER, response ignored');
-            return;
-          }
+            if (true != event.response?.hasHeader('Contact')) {
+              logger.debug(
+                  'no Contact header in response to REGISTER, response ignored');
+              return;
+            }
 
-          List<dynamic> contacts = <dynamic>[];
-          event.response?.headers?['Contact'].forEach((dynamic item) {
-            contacts.add(item['parsed']);
-          });
-          // Get the Contact pointing to us and update the expires value accordingly.
-          dynamic contact = contacts.firstWhereOrNull(
-              (dynamic element) => element.uri.user == _ua.contact?.uri.user);
+            List<dynamic> contacts = <dynamic>[];
+            event.response?.headers?['Contact'].forEach((dynamic item) {
+              contacts.add(item['parsed']);
+            });
+            // Get the Contact pointing to us and update the expires value accordingly.
+            dynamic contact = contacts.firstWhereOrNull(
+                (dynamic element) => element.uri.user == _ua.contact?.uri.user);
 
-          if (contact == null) {
-            logger.debug('no Contact header pointing to us, response ignored');
-            return;
-          }
+            if (contact == null) {
+              logger
+                  .debug('no Contact header pointing to us, response ignored');
+              return;
+            }
 
-          dynamic expires = contact.getParam('expires');
+            dynamic expires = contact.getParam('expires');
 
-          if (expires == null && true == event.response?.hasHeader('expires')) {
-            expires = event.response?.getHeader('expires');
-          }
+            if (expires == null &&
+                true == event.response?.hasHeader('expires')) {
+              expires = event.response?.getHeader('expires');
+            }
 
-          expires ??= _expires;
+            expires ??= _expires;
 
-          expires = num.tryParse(expires) ?? 0;
+            expires = num.tryParse(expires) ?? 0;
 
-          if (expires < MIN_REGISTER_EXPIRES) {
-            expires = MIN_REGISTER_EXPIRES;
-          }
+            if (expires < MIN_REGISTER_EXPIRES) {
+              expires = MIN_REGISTER_EXPIRES;
+            }
 
-          // Re-Register or emit an event before the expiration interval has elapsed.
-          // For that, decrease the expires value. ie: 3 seconds.
-          _registrationTimer = setTimeout(() {
-            clearTimeout(_registrationTimer);
-            _registrationTimer = null;
-            // If there are no listeners for registrationExpiring, reregistration.
-            // If there are listeners, var the listening do the register call.
-            if (!_ua.hasListeners(EventRegistrationExpiring())) {
+            // Re-Register or emit an event before the expiration interval has elapsed.
+            // For that, decrease the expires value. ie: 3 seconds.
+            _registrationTimer = setTimeout(() {
+              clearTimeout(_registrationTimer);
+              _registrationTimer = null;
+              // If there are no listeners for registrationExpiring, reregistration.
+              // If there are listeners, var the listening do the register call.
+              if (!_ua.hasListeners(EventRegistrationExpiring())) {
+                register();
+              } else {
+                _ua.emit(EventRegistrationExpiring());
+              }
+            }, (expires * 1000) - 5000);
+
+            // Save gruu values.
+            if (contact.hasParam('temp-gruu')) {
+              _ua.contact?.temp_gruu =
+                  contact.getParam('temp-gruu').replaceAll('"', '');
+            }
+            if (contact.hasParam('pub-gruu')) {
+              _ua.contact?.pub_gruu =
+                  contact.getParam('pub-gruu').replaceAll('"', '');
+            }
+
+            if (!_registered) {
+              _registered = true;
+              _ua.registered(response: event.response);
+            }
+          } // Interval too brief RFC3261 10.2.8.
+          else if (true == status_code.contains(RegExp(r'^423$'))) {
+            if (true == event.response?.hasHeader('min-expires')) {
+              // Increase our registration interval to the suggested minimum.
+              _expires = num.tryParse(event.response?.getHeader('min-expires'))
+                      ?.toInt() ??
+                  0;
+
+              if (_expires < MIN_REGISTER_EXPIRES)
+                _expires = MIN_REGISTER_EXPIRES;
+
+              // Attempt the registration again immediately.
               register();
             } else {
-              _ua.emit(EventRegistrationExpiring());
+              // This response MUST contain a Min-Expires header field.
+              logger.debug(
+                  '423 response received for REGISTER without Min-Expires');
+
+              _registrationFailure(
+                  event.response, DartSIP_C.causes.SIP_FAILURE_CODE);
             }
-          }, (expires * 1000) - 5000);
-
-          // Save gruu values.
-          if (contact.hasParam('temp-gruu')) {
-            _ua.contact?.temp_gruu =
-                contact.getParam('temp-gruu').replaceAll('"', '');
           }
-          if (contact.hasParam('pub-gruu')) {
-            _ua.contact?.pub_gruu =
-                contact.getParam('pub-gruu').replaceAll('"', '');
-          }
-
-          if (!_registered) {
-            _registered = true;
-            _ua.registered(response: event.response);
-          }
-        } else
-        // Interval too brief RFC3261 10.2.8.
-        if (true == status_code?.contains(RegExp(r'^423$'))) {
-          if (true == event.response?.hasHeader('min-expires')) {
-            // Increase our registration interval to the suggested minimum.
-            _expires = num.tryParse(event.response?.getHeader('min-expires'))
-                    ?.toInt() ??
-                0;
-
-            if (_expires < MIN_REGISTER_EXPIRES)
-              _expires = MIN_REGISTER_EXPIRES;
-
-            // Attempt the registration again immediately.
-            register();
-          } else {
-            // This response MUST contain a Min-Expires header field.
-            logger.debug(
-                '423 response received for REGISTER without Min-Expires');
-
-            _registrationFailure(
-                event.response, DartSIP_C.causes.SIP_FAILURE_CODE);
-          }
-        } else {
-          String cause = utils.sipErrorCause(event.response?.status_code);
-          _registrationFailure(event.response, cause);
         }
+        String cause = utils.sipErrorCause(event.response?.status_code);
+        _registrationFailure(event.response, cause);
       }
     });
 
@@ -329,14 +332,16 @@ class Registrator {
     });
     handlers.on(EventOnReceiveResponse(), (EventOnReceiveResponse event) {
       String? status_code = event.response?.status_code.toString();
-      if (utils.test2XX(status_code)) {
-        _unregistered(event.response);
-      } else if (utils.test1XX(status_code)) {
-        // Ignore provisional responses.
-      } else {
-        String cause = utils.sipErrorCause(event.response?.status_code);
-        _unregistered(event.response, cause);
+      if (status_code != null) {
+        if (utils.test2XX(status_code)) {
+          _unregistered(event.response);
+        } else if (utils.test1XX(status_code)) {
+          // Ignore provisional responses.
+        }
       }
+
+      String cause = utils.sipErrorCause(event.response?.status_code);
+      _unregistered(event.response, cause);
     });
 
     RequestSender request_sender = RequestSender(_ua, request, handlers);
