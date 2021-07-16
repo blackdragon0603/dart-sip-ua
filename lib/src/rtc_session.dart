@@ -580,7 +580,11 @@ class RTCSession extends EventManager {
       switch (sdpSemantics) {
         case 'unified-plan':
           stream.getTracks().forEach((MediaStreamTrack track) {
-            _connection?.addTrack(track, stream);
+            if (stream != null) {
+              _connection?.addTrack(track, stream);
+            } else {
+              _connection?.addTrack(track);
+            }
           });
           break;
         case 'plan-b':
@@ -2193,7 +2197,11 @@ class RTCSession extends EventManager {
       switch (sdpSemantics) {
         case 'unified-plan':
           stream.getTracks().forEach((MediaStreamTrack track) {
-            _connection?.addTrack(track, stream);
+            if (stream != null) {
+              _connection?.addTrack(track, stream);
+            } else {
+              _connection?.addTrack(track);
+            }
           });
           break;
         case 'plan-b':
