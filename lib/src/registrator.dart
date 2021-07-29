@@ -270,9 +270,10 @@ class Registrator {
                   event.response, DartSIP_C.causes.SIP_FAILURE_CODE);
             }
           }
+        } else {
+          String cause = utils.sipErrorCause(event.response?.status_code);
+          _registrationFailure(event.response, cause);
         }
-        String cause = utils.sipErrorCause(event.response?.status_code);
-        _registrationFailure(event.response, cause);
       }
     });
 
